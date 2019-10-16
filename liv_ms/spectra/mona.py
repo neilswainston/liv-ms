@@ -5,63 +5,75 @@ All rights reserved.
 
 @author: neilswainston
 '''
+# pylint: disable=invalid-name
 import sys
 
 import ijson
-
+import pandas as pd
 
 _NAME_MAP = {'kegg': 'kegg.compound',
              'molecular formula': 'formula',
              'total exact mass': 'monoisotopic_mass:float'}
 
 
-def get_spectra(filename, num_records=float('inf')):
+def get_df(chemicals, spectra):
+    '''Get DataFrame.'''
+    chem_df = pd.DataFrame(chemicals)
+    spec_df = pd.DataFrame(spectra)
+
+    return chem_df.join(spec_df)
+
+
+def get_spectra(filename, num_spectra=float('inf')):
     '''Get spectra and metabolite ids.'''
 
-    records = []
+    chemicals = []
+    spectra = []
 
     for prefix, typ, value in ijson.parse(open(filename)):
         if prefix == 'item' and typ == 'start_map':
-            record = {'chemical': {}, 'spectrum': {}}
+            chemical = {}
+            spectrum = {}
         elif prefix == 'item.compound.item.inchi':
-            record['chemical']['inchi'] = value
+            chemical['inchi'] = value
         elif prefix == 'item.compound.item.names.item.name':
-            if 'name' not in record['chemical']:
-                record['chemical']['name'] = value
-            # record['chemical']['names'].append(value)
+            if 'name' not in chemical:
+                chemical['name'] = value
+            # chemical['names'].append(value)
         elif prefix in ['item.compound.item.metaData.item.name',
                         'item.metaData.item.name']:
             name = _normalise_name(value.lower())
         elif prefix == 'item.compound.item.metaData.item.value':
-            _parse_compound_metadata(name, value, record)
+            _parse_compound_metadata(name, value, chemical)
             name = None
         elif prefix == 'item.id':
-            record['spectrum']['id'] = value
+            spectrum['id'] = value
         elif prefix == 'item.metaData.item.value':
-            record['spectrum'][name] = value
+            spectrum[name] = value
             name = None
         elif prefix == 'item.spectrum':
             values = [float(val) for term in value.split()
                       for val in term.split(':')]
-            record['spectrum']['m/z'] = values[0::2]
-            record['spectrum']['I'] = values[1::2]
+            spectrum['m/z'] = values[0::2]
+            spectrum['I'] = values[1::2]
         # elif prefix == 'item.tags.item.text':
-        #    record['spectrum']['tags'].append(value)
+        #    spectrum['tags'].append(value)
         elif prefix == 'item' and typ == 'end_map':
-            records.append(record)
+            chemicals.append(chemical)
+            spectra.append(spectrum)
 
-            if len(records) == num_records:
+            if len(spectra) == num_spectra:
                 break
 
-    return None, None
+    return chemicals, spectra
 
 
-def _parse_compound_metadata(name, value, record):
+def _parse_compound_metadata(name, value, chemical):
     '''Parses compound metadata.'''
     if name == 'chebi' and isinstance(value, str):
         value = value.replace('CHEBI:', '').split()[0]
 
-    record['chemical'][_normalise_name(name)] = value
+    chemical[_normalise_name(name)] = value
 
 
 def _normalise_name(name):
@@ -74,7 +86,9 @@ def _normalise_name(name):
 
 def main(args):
     '''main method.'''
-    spectra, met_ids = get_spectra(args[0], int(args[1]))
+    chemicals, spectra = get_spectra(args[0], int(args[1]))
+    df = get_df(chemicals, spectra)
+    df.to_csv('mona.csv')
 
 
 if __name__ == '__main__':
