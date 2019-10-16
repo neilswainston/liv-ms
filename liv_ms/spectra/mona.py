@@ -5,23 +5,12 @@ All rights reserved.
 
 @author: neilswainston
 '''
-# pylint: disable=invalid-name
-import sys
-
 import ijson
-import pandas as pd
+
 
 _NAME_MAP = {'kegg': 'kegg.compound',
              'molecular formula': 'formula',
              'total exact mass': 'monoisotopic_mass:float'}
-
-
-def get_df(chemicals, spectra):
-    '''Get DataFrame.'''
-    chem_df = pd.DataFrame(chemicals)
-    spec_df = pd.DataFrame(spectra)
-
-    return chem_df.join(spec_df)
 
 
 def get_spectra(filename, num_spectra=float('inf')):
@@ -82,14 +71,3 @@ def _normalise_name(name):
         return _NAME_MAP[name]
 
     return name.replace(':', '_')
-
-
-def main(args):
-    '''main method.'''
-    chemicals, spectra = get_spectra(args[0], int(args[1]))
-    df = get_df(chemicals, spectra)
-    df.to_csv('mona.csv')
-
-
-if __name__ == '__main__':
-    main(sys.argv[1:])

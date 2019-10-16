@@ -7,8 +7,6 @@ All rights reserved.
 '''
 # pylint: disable=too-few-public-methods
 from collections import defaultdict
-import random
-import sys
 
 from scipy.sparse import coo_matrix
 from sklearn.metrics.pairwise import cosine_similarity
@@ -17,7 +15,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 class SpectraMatcher():
     '''Class to match spectra.'''
 
-    def __init__(self, spectra, bin_size=0.1, min_val=0, max_val=10):
+    def __init__(self, spectra, bin_size=0.1, min_val=0, max_val=1000):
         self.__bin_size = bin_size
         self.__num_bins = int((max_val - min_val) / self.__bin_size)
 
