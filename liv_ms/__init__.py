@@ -30,7 +30,7 @@ def _get_spec(row):
 
 def main(args):
     '''main method.'''
-    chem, spec = mona.get_spectra(args[0], 106)  # int(args[1]))
+    chem, spec = mona.get_spectra(args[0], 5000)  # int(args[1]))
     df = get_df(chem, spec)
 
     spectra = df[['m/z', 'I']].values
@@ -39,9 +39,15 @@ def main(args):
 
     for _ in range(16):
         query_idx = random.randint(0, len(spectra) - 1)
+        print(df.loc[query_idx]['name'])
         res = matcher.search(spectra[query_idx])
         res_idx = list(zip(*[res[0], list(range(len(res[0])))]))
-        print(sorted(res_idx, reverse=True))
+
+        for score, idx in sorted(res_idx, reverse=True)[:11]:
+            if idx != query_idx:
+                print(df.loc[idx]['name'], score)
+
+        print()
 
     df.to_csv('mona.csv')
 
