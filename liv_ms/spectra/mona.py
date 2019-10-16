@@ -15,24 +15,20 @@ _NAME_MAP = {'kegg': 'kegg.compound',
              'total exact mass': 'monoisotopic_mass:float'}
 
 
-def get_spectra(filename):
+def get_spectra(filename, num_records=float('inf')):
     '''Get spectra and metabolite ids.'''
 
     records = []
-    record = {'chemical': {},
-              'spectrum': {}}
 
     for prefix, typ, value in ijson.parse(open(filename)):
         if prefix == 'item' and typ == 'start_map':
-            record = {'chemical': {'names:string[]': []},
-                      'spectrum': {':LABEL': 'Spectrum',
-                                   'tags:string[]': []}}
+            record = {'chemical': {}, 'spectrum': {}}
         elif prefix == 'item.compound.item.inchi':
             record['chemical']['inchi'] = value
         elif prefix == 'item.compound.item.names.item.name':
             if 'name' not in record['chemical']:
                 record['chemical']['name'] = value
-            record['chemical']['names:string[]'].append(value)
+            # record['chemical']['names'].append(value)
         elif prefix in ['item.compound.item.metaData.item.name',
                         'item.metaData.item.name']:
             name = _normalise_name(value.lower())
@@ -40,7 +36,7 @@ def get_spectra(filename):
             _parse_compound_metadata(name, value, record)
             name = None
         elif prefix == 'item.id':
-            record['spectrum']['id:ID(Spectrum)'] = value
+            record['spectrum']['id'] = value
         elif prefix == 'item.metaData.item.value':
             record['spectrum'][name] = value
             name = None
@@ -49,10 +45,13 @@ def get_spectra(filename):
                       for val in term.split(':')]
             record['spectrum']['m/z'] = values[0::2]
             record['spectrum']['I'] = values[1::2]
-        elif prefix == 'item.tags.item.text':
-            record['spectrum']['tags:string[]'].append(value)
+        # elif prefix == 'item.tags.item.text':
+        #    record['spectrum']['tags'].append(value)
         elif prefix == 'item' and typ == 'end_map':
             records.append(record)
+
+            if len(records) == num_records:
+                break
 
     return None, None
 
@@ -75,7 +74,7 @@ def _normalise_name(name):
 
 def main(args):
     '''main method.'''
-    spectra, met_ids = get_spectra(args[0])
+    spectra, met_ids = get_spectra(args[0], int(args[1]))
 
 
 if __name__ == '__main__':
