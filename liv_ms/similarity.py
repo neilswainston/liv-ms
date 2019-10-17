@@ -17,13 +17,15 @@ class SpectraMatcher():
 
     def __init__(self, spectra, bin_size=0.1, min_val=0, max_val=1000):
         self.__bin_size = bin_size
+        self.__min_val = min_val
+        self.__max_val = max_val
         self.__num_bins = int((max_val - min_val) / self.__bin_size)
 
         self.__spec_matrix = self.__bin_spec(spectra)
 
     def search(self, query):
         '''Search.'''
-        query_matrix = self.__bin_spec([query])
+        query_matrix = self.__bin_spec(query)
         return cosine_similarity(query_matrix, self.__spec_matrix)
 
     def __bin_spec(self, specs):
@@ -36,8 +38,9 @@ class SpectraMatcher():
             binned_spec = defaultdict(int)
 
             for mass, intensity in zip(*spec):
-                binned_mass = int(mass / self.__bin_size)
-                binned_spec[binned_mass] += intensity
+                if self.__min_val < mass < self.__max_val:
+                    binned_mass = int(mass / self.__bin_size)
+                    binned_spec[binned_mass] += intensity
 
             row.extend([spec_idx] * len(binned_spec))
             col.extend(binned_spec.keys())
