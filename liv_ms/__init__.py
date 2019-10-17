@@ -44,12 +44,15 @@ def _search(matcher, query_spec, df, num_hits):
     score_data = np.take(res, offset[:, np.newaxis] + top_idxs)
 
     # Get match data corresponding to top n hits:
-    fnc = partial(_get_data, data=df[['name', 'smiles']])
+    fnc = partial(_get_data, data=df[['name',
+                                      'monoisotopic_mass_float',
+                                      'smiles']])
+
     match_data = np.apply_along_axis(fnc, 1, top_idxs)
 
     print(time.time() - start)
 
-    return score_data, match_data
+    return np.dstack((match_data, score_data))
 
 
 def _get_top_idxs(arr, n):
@@ -70,8 +73,8 @@ def _get_data(idxs, data):
 def main(args):
     '''main method.'''
     num_spectra = 6000
-    num_queries = 16
-    num_hits = 10
+    num_queries = 1
+    num_hits = 100
 
     chem, spec = mona.get_spectra(args[0], num_spectra)  # int(args[1]))
     df = get_df(chem, spec)
@@ -83,11 +86,10 @@ def main(args):
     query_df = df.sample(num_queries)
     query_spec = query_df[['m/z', 'I']].values
 
-    score_data, match_data = _search(matcher, query_spec, df, num_hits)
+    result = _search(matcher, query_spec, df, num_hits)
 
     print(query_df['name'])
-    print(score_data)
-    print(match_data)
+    print(result)
 
 
 if __name__ == '__main__':
