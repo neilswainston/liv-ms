@@ -37,7 +37,7 @@ def _search(matcher, query_spec, df, num_hits):
 
     # Get indexes of top n hits:
     fnc = partial(_get_top_idxs, n=num_hits)
-    top_idxs = np.apply_along_axis(fnc, 1, -res)
+    top_idxs = np.apply_along_axis(fnc, 1, res)
 
     # Get score data corresponding to top n hits:
     offset = np.arange(0, res.size, res.shape[1])
@@ -65,6 +65,11 @@ def _get_top_idxs(arr, n):
     return idxs[min_elements_order]
 
 
+def _get_peaks(row):
+    '''Get peaks.'''
+    return list(zip(*row[['m/z', 'I']]))
+
+
 def _get_data(idxs, data):
     '''Get data for best matches.'''
     return data.loc[idxs]
@@ -72,19 +77,19 @@ def _get_data(idxs, data):
 
 def main(args):
     '''main method.'''
-    num_spectra = 6000
+    num_spectra = 128
     num_queries = 1
-    num_hits = 100
+    num_hits = 3
 
     chem, spec = mona.get_spectra(args[0], num_spectra)  # int(args[1]))
     df = get_df(chem, spec)
 
-    spectra = df[['m/z', 'I']].values
+    spectra = df.apply(_get_peaks, axis=1)
 
     matcher = similarity.SpectraMatcher(spectra)
 
     query_df = df.sample(num_queries)
-    query_spec = query_df[['m/z', 'I']].values
+    query_spec = query_df.apply(_get_peaks, axis=1).tolist()
 
     result = _search(matcher, query_spec, df, num_hits)
 
