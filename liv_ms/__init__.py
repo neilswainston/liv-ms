@@ -8,10 +8,9 @@ All rights reserved.
 # pylint: disable=invalid-name
 # pylint: disable=wrong-import-order
 from functools import partial
+from itertools import zip_longest
 import random
 import sys
-
-from sympy.polys.polyconfig import query
 
 from liv_ms import similarity
 from liv_ms.spectra import mona
@@ -67,7 +66,7 @@ def _get_top_idxs(arr, n):
 
 def _get_peaks(row):
     '''Get peaks.'''
-    return list(zip(*row[['m/z', 'I']]))
+    return [list(val) for val in zip(*row[['m/z', 'I']])]
 
 
 def _get_data(idxs, data):
@@ -77,9 +76,9 @@ def _get_data(idxs, data):
 
 def main(args):
     '''main method.'''
-    num_spectra = 128
+    num_spectra = 10
     num_queries = 1
-    num_hits = 3
+    num_hits = 5
 
     chem, spec = mona.get_spectra(args[0], num_spectra)  # int(args[1]))
     df = get_df(chem, spec)
@@ -89,7 +88,7 @@ def main(args):
     matcher = similarity.SpectraMatcher(spectra)
 
     query_df = df.sample(num_queries)
-    query_spec = query_df.apply(_get_peaks, axis=1).tolist()
+    query_spec = query_df.apply(_get_peaks, axis=1).values
 
     result = _search(matcher, query_spec, df, num_hits)
 
