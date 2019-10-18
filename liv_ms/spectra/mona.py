@@ -6,7 +6,7 @@ All rights reserved.
 @author: neilswainston
 '''
 import ijson
-
+import numpy as np
 
 _NAME_MAP = {'kegg': 'kegg.compound',
              'molecular formula': 'formula',
@@ -43,8 +43,8 @@ def get_spectra(filename, num_spectra=float('inf')):
         elif prefix == 'item.spectrum':
             values = [float(val) for term in value.split()
                       for val in term.split(':')]
-            spectrum['m/z'] = values[0::2]
-            spectrum['I'] = values[1::2]
+            spectrum['m/z'] = np.array(values[0::2])
+            spectrum['I'] = np.array(values[1::2])
         # elif prefix == 'item.tags.item.text':
         #    spectrum['tags'].append(value)
         elif prefix == 'item' and typ == 'end_map':
