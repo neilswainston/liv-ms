@@ -16,7 +16,7 @@ class TestSimilarity(unittest.TestCase):
     def test_search(self):
         '''Test search method of similarity module.'''
         spectra = [[[random.random() * 100, random.random()]
-                    for _ in range(16)]
+                    for _ in range(128)]
                    for _ in range(256)]
 
         matcher = similarity.SpectraMatcher(spectra)
