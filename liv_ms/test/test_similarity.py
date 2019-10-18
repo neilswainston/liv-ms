@@ -5,7 +5,6 @@ All rights reserved.
 
 @author: neilswainston
 '''
-import random
 import unittest
 from liv_ms import similarity
 import numpy as np

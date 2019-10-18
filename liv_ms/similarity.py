@@ -22,6 +22,7 @@ class SpectraMatcher():
     def search(self, queries):
         '''Search.'''
         _normalise_intensities(queries)
+        queries = _pad(queries)
 
         return np.array([_get_similarity_scores(spec_tree, queries)
                          for spec_tree in self.__spec_trees]).T
@@ -30,8 +31,22 @@ class SpectraMatcher():
 def _normalise_intensities(spectra):
     '''Normalise intensities.'''
     # Noamalise intensities:
-    spectra[:, :, 1] = (spectra[:, :, 1].T /
-                        spectra.sum(axis=1)[:, 1]).T
+    for spec in spectra:
+        spec[:, 1] = spec[:, 1] / spec[:, 1].sum()
+
+
+def _pad(spectra):
+    '''Pad spectra.'''
+    padded = []
+    max_len = max([len(query) for query in spectra])
+
+    for spec in spectra:
+        padded.append(np.pad(spec,
+                             [(0, max_len - len(spec)), (0, 0)],
+                             'constant',
+                             constant_values=0))
+
+    return np.array(padded)
 
 
 def _get_spec_trees(spectra):

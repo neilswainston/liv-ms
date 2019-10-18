@@ -23,18 +23,7 @@ def get_df(chem, spec):
     chem_df = pd.DataFrame(chem)
     spec_df = pd.DataFrame(spec)
 
-    # Pad m/z and I:
-    _pad(spec_df, 'm/z')
-    _pad(spec_df, 'I')
-
     return chem_df.join(spec_df)
-
-
-def _pad(df, col):
-    '''Pad data.'''
-    max_len = df[col].map(len).max()
-    df[col] = df[col].apply(lambda x: np.pad(
-        x, (0, max_len - len(x)), 'constant', constant_values=0))
 
 
 def _search(matcher, query_spec, df, num_hits):
@@ -93,8 +82,8 @@ def _get_data(idxs, data):
 
 def main(args):
     '''main method.'''
-    num_spectra = 256
-    num_queries = 16
+    num_spectra = 128
+    num_queries = 32
     num_hits = 5
 
     chem, spec = mona.get_spectra(args[0], num_spectra)
