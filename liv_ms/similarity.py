@@ -16,14 +16,22 @@ class SpectraMatcher():
     def __init__(self, spectra, min_val=0, max_val=1000):
         self.__min_val = min_val
         self.__max_val = max_val
+        _normalise_intensities(spectra)
         self.__spec_trees = _get_spec_trees(spectra)
 
     def search(self, queries):
         '''Search.'''
-        queries, weights = _preprocess_queries(queries)
+        _normalise_intensities(queries)
 
-        return np.array([_get_similarity_scores(spec_tree, queries, weights)
+        return np.array([_get_similarity_scores(spec_tree, queries)
                          for spec_tree in self.__spec_trees]).T
+
+
+def _normalise_intensities(spectra):
+    '''Normalise intensities.'''
+    # Noamalise intensities:
+    spectra[:, :, 1] = (spectra[:, :, 1].T /
+                        spectra.sum(axis=1)[:, 1]).T
 
 
 def _get_spec_trees(spectra):
@@ -34,11 +42,11 @@ def _get_spec_trees(spectra):
 def _preprocess_queries(queries):
     '''Pre-process queries.'''
     # Ensure equal length spectra in each query:
-    query_lens = [len(spec) for spec in queries]
-    max_len = max(query_lens)
-    queries = np.array([spec +
-                        [[0, 0]] * (max_len - len(spec))
-                        for spec in queries])
+    max_len = len(max(np.array(queries)[:, 0], key=len))
+
+    queries = [[spec[0] + [0] * (max_len - len(spec)),
+                spec[1] + [0] * (max_len - len(spec))]
+               for spec in queries]
 
     # queries, weights = np.apply_along_axis(
     #    _normalise_query, axis=1, arr=queries)
@@ -60,7 +68,7 @@ def _normalise_query(query):
     return zip(*[masses, intensities])
 
 
-def _get_similarity_scores(spec_tree, queries, weights):
+def _get_similarity_scores(spec_tree, queries):
     '''Get similarity score.'''
     dists = spec_tree.query(queries)[0]
-    return np.average(dists, weights=weights, axis=1)
+    return np.average(dists, weights=queries[:, :, 1], axis=1)

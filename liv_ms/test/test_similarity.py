@@ -8,6 +8,7 @@ All rights reserved.
 import random
 import unittest
 from liv_ms import similarity
+import numpy as np
 
 
 class TestSimilarity(unittest.TestCase):
@@ -15,20 +16,17 @@ class TestSimilarity(unittest.TestCase):
 
     def test_search(self):
         '''Test search method of similarity module.'''
-        num_spectra = 4
+        num_spectra = 2
         num_queries = 8
-        num_spec_peaks = 24
+        num_spec_peaks = 6
         num_query_peaks = 48
 
-        spectra = [[[random.random() * 100, random.random()]
-                    for _ in range(num_spec_peaks)]
-                   for _ in range(num_spectra)]
+        # Get spectra:
+        spectra = _get_spectra(num_spectra, num_spec_peaks)
 
         matcher = similarity.SpectraMatcher(spectra)
 
-        queries = [[[random.random() * 100, random.random()]
-                    for _ in range(num_query_peaks)]
-                   for _ in range(num_queries)]
+        queries = _get_spectra(num_queries, num_query_peaks)
 
         result = matcher.search(queries)
 
@@ -36,16 +34,21 @@ class TestSimilarity(unittest.TestCase):
 
     def test_search_specific(self):
         '''Test search method of similarity module.'''
-        spectra = [[[1, 0.5], [10, 0.5]],
-                   [[1, 0.5], [10, 0.5]],
-                   [[1, 0.5], [10, 0.5]]]
+        spectra = np.array([[[1, 0.2], [10, 0.3]],
+                            [[1, 0.2], [10, 0.3]],
+                            [[1, 0.2], [10, 0.3]]])
 
         matcher = similarity.SpectraMatcher(spectra)
 
-        queries = [[[1, 0.5], [10, 0.5]]]
+        queries = np.array([[[1, 0.2], [10, 0.3]]])
         result = matcher.search(queries)
 
         self.assertAlmostEqual(result[0][0], 0, 12)
+
+
+def _get_spectra(num_spectra, num_peaks):
+    '''Get spectra.'''
+    return np.random.rand(num_spectra, num_peaks, 2)
 
 
 if __name__ == "__main__":
