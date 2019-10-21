@@ -82,9 +82,9 @@ def _get_data(idxs, data):
 
 def main(args):
     '''main method.'''
-    num_spectra = 128
-    num_queries = 32
-    num_hits = 5
+    num_spectra = 6
+    num_queries = 1
+    num_hits = 1
 
     chem, spec = mona.get_spectra(args[0], num_spectra)
     df = get_df(chem, spec)
