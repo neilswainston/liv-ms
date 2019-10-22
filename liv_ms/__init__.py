@@ -43,7 +43,9 @@ def _search(matcher, query_spec, df, num_hits):
     score_data = np.take(res, offset[:, np.newaxis] + top_idxs)
 
     # Get match data corresponding to top n hits:
-    fnc = partial(_get_data, data=df[['name',
+    df.reset_index(inplace=True)
+    fnc = partial(_get_data, data=df[['index',
+                                      'name',
                                       'monoisotopic_mass_float',
                                       'smiles']])
 
@@ -82,15 +84,14 @@ def _get_data(idxs, data):
 
 def main(args):
     '''main method.'''
-    num_spectra = 6
-    num_queries = 1
-    num_hits = 1
+    num_spectra = 16
+    num_queries = 4
+    num_hits = 3
 
     chem, spec = mona.get_spectra(args[0], num_spectra)
     df = get_df(chem, spec)
 
     spectra = _get_spectra(df)
-
     matcher = similarity.SpectraMatcher(spectra)
 
     query_df = df.sample(num_queries)
