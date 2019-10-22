@@ -114,13 +114,11 @@ def _plot_spectrum(query, df, results, out_dir='out'):
         ax.margins(x=0, y=0)
 
         # Add 'peaks':
-        lib_lines = [[(x, 0), (x, -y)] for x, y in lib_spec]
-        lib_col = ['red' for _ in lib_spec]
-
         ax.add_collection(
-            collections.LineCollection(query_lines + lib_lines,
-                                       colors=query_col + lib_col,
-                                       alpha=0.5))
+            collections.LineCollection(
+                query_lines + [[(x, 0), (x, -y)] for x, y in lib_spec],
+                colors=query_col + ['red' for _ in lib_spec],
+                alpha=0.5))
 
         # Add (invisible) scatter points:
         ax.scatter(*zip(*query_spec), s=0)
@@ -146,8 +144,8 @@ def _plot_spectrum(query, df, results, out_dir='out'):
 def main(args):
     '''main method.'''
     num_spectra = 256
-    num_queries = 16
-    num_hits = 3
+    num_queries = 6
+    num_hits = 4
 
     chem, spec = mona.get_spectra(args[0], num_spectra)
     df = get_df(chem, spec)
