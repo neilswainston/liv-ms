@@ -6,14 +6,20 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=invalid-name
+# pylint: disable=ungrouped-imports
 # pylint: disable=wrong-import-order
 from functools import partial
 from itertools import zip_longest
 import random
 import sys
 
+from matplotlib import collections
+from rdkit import Chem
+from rdkit.Chem import Draw
+
 from liv_ms import similarity
 from liv_ms.spectra import mona
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -82,6 +88,48 @@ def _get_data(idxs, data):
     return data.loc[idxs]
 
 
+def _plot_spectra(query_df, df, results):
+    '''Plot spectra.'''
+    for (_, query), result in zip(query_df.iterrows(), results):
+        for res in result:
+            _plot_spectrum(query, df, res)
+
+
+def _plot_spectrum(query, df, res):
+    '''Plot spectrum.'''
+    # Get data:
+    query_spec = _get_spectra(query.to_frame().T)[0]
+    lib_spec = _get_spectra(df.loc[[res[0]]])[0]
+    name = '_'.join([query['name'], res[1], '%.3f' % res[4]])
+
+    # img = Draw.MolToImage(Chem.MolFromSmiles(res[3]), bgColor=None)
+
+    # Make plot
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.axhline(y=0, color='k', linewidth=1)
+    ax1.margins(x=0, y=0)
+
+    # Add 'peaks':
+    query_lines = [[(x, 0), (x, y)] for x, y in query_spec]
+    lib_lines = [[(x, 0), (x, -y)] for x, y in lib_spec]
+    query_col = ['green' for _ in query_spec]
+    lib_col = ['red' for _ in lib_spec]
+
+    ax1.add_collection(collections.LineCollection(query_lines + lib_lines,
+                                                  colors=query_col + lib_col,
+                                                  alpha=0.5))
+
+    # Add (invisible) scatter points:
+    ax1.scatter(*zip(*query_spec), s=0)
+    ax1.scatter(*zip(*lib_spec), s=0)
+
+    # Format and save:
+    ax1.set_title(name)
+    # ax2.figimage(img, 0, fig.bbox.ymax - img.size[1])
+
+    plt.savefig(name + '.png')
+
+
 def main(args):
     '''main method.'''
     num_spectra = 16
@@ -98,6 +146,8 @@ def main(args):
     queries = _get_spectra(query_df)
 
     result = _search(matcher, queries, df, num_hits)
+
+    _plot_spectra(query_df, df, result)
 
     print(query_df['name'])
     print(result)
