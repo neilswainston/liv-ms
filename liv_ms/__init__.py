@@ -10,6 +10,7 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 from functools import partial
 from itertools import zip_longest
+import os.path
 import random
 import sys
 
@@ -91,43 +92,55 @@ def _get_data(idxs, data):
 def _plot_spectra(query_df, df, results):
     '''Plot spectra.'''
     for (_, query), result in zip(query_df.iterrows(), results):
-        for res in result:
-            _plot_spectrum(query, df, res)
+        _plot_spectrum(query, df, result)
 
 
-def _plot_spectrum(query, df, res):
+def _plot_spectrum(query, df, results, out_dir='out'):
     '''Plot spectrum.'''
     # Get data:
     query_spec = _get_spectra(query.to_frame().T)[0]
-    lib_spec = _get_spectra(df.loc[[res[0]]])[0]
-    name = '_'.join([query['name'], res[1], '%.3f' % res[4]])
+    query_lines = [[(x, 0), (x, y)] for x, y in query_spec]
+    query_col = ['green' for _ in query_spec]
+
+    lib_specs = _get_spectra(df.loc[results[:, 0]])
 
     # img = Draw.MolToImage(Chem.MolFromSmiles(res[3]), bgColor=None)
 
     # Make plot
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    ax1.axhline(y=0, color='k', linewidth=1)
-    ax1.margins(x=0, y=0)
+    fig, axes = plt.subplots(len(results), 1, sharex=True)
 
-    # Add 'peaks':
-    query_lines = [[(x, 0), (x, y)] for x, y in query_spec]
-    lib_lines = [[(x, 0), (x, -y)] for x, y in lib_spec]
-    query_col = ['green' for _ in query_spec]
-    lib_col = ['red' for _ in lib_spec]
+    for ax, res, lib_spec in zip(axes, results, lib_specs):
+        ax.axhline(y=0, color='k', linewidth=1)
+        ax.margins(x=0, y=0)
 
-    ax1.add_collection(collections.LineCollection(query_lines + lib_lines,
-                                                  colors=query_col + lib_col,
-                                                  alpha=0.5))
+        # Add 'peaks':
+        lib_lines = [[(x, 0), (x, -y)] for x, y in lib_spec]
+        lib_col = ['red' for _ in lib_spec]
 
-    # Add (invisible) scatter points:
-    ax1.scatter(*zip(*query_spec), s=0)
-    ax1.scatter(*zip(*lib_spec), s=0)
+        ax.add_collection(
+            collections.LineCollection(query_lines + lib_lines,
+                                       colors=query_col + lib_col,
+                                       alpha=0.5))
 
-    # Format and save:
-    ax1.set_title(name)
-    # ax2.figimage(img, 0, fig.bbox.ymax - img.size[1])
+        # Add (invisible) scatter points:
+        ax.scatter(*zip(*query_spec), s=0)
+        ax.scatter(*zip(*lib_spec), s=0)
 
-    plt.savefig(name + '.png')
+        # Format and save:
+        name = '_'.join([query['name'], res[1], '%.3f' % res[4]])
+        ax.set_title(name, fontsize=6)
+        ax.set_xlabel('m/z', fontsize=6)
+        ax.set_ylabel('I', fontsize=6)
+        ax.tick_params(axis='both', which='major', labelsize=6)
+        ax.tick_params(axis='both', which='minor', labelsize=4)
+        # ax2.figimage(img, 0, fig.bbox.ymax - img.size[1])
+
+    fig.tight_layout()
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    plt.savefig(os.path.join(out_dir, query['name'] + '.png'), dpi=800)
 
 
 def main(args):
