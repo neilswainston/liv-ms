@@ -17,15 +17,22 @@ class SpectraMatcher():
         self.__min_val = min_val
         self.__max_val = max_val
         _normalise_intensities(spectra)
+        self.__spectra = _pad(spectra)
         self.__spec_trees = _get_spec_trees(spectra)
 
     def search(self, queries):
         '''Search.'''
         _normalise_intensities(queries)
+        query_trees = _get_spec_trees(queries)
         queries = _pad(queries)
 
-        return np.array([_get_similarity_scores(spec_tree, queries)
-                         for spec_tree in self.__spec_trees]).T
+        query_lib_scores = np.array([_get_sim_scores(spec_tree, queries)
+                                     for spec_tree in self.__spec_trees]).T
+
+        lib_query_scores = np.array([_get_sim_scores(spec_tree, self.__spectra)
+                                     for spec_tree in query_trees])
+
+        return (query_lib_scores + lib_query_scores) / 2
 
 
 def _normalise_intensities(spectra):
@@ -54,7 +61,7 @@ def _get_spec_trees(spectra):
     return [KDTree(spec) for spec in spectra]
 
 
-def _get_similarity_scores(spec_tree, queries):
+def _get_sim_scores(lib_spec_tree, queries):
     '''Get similarity score.'''
-    dists = spec_tree.query(queries)[0]
+    dists = lib_spec_tree.query(queries)[0]
     return np.average(dists, weights=queries[:, :, 1], axis=1)

@@ -145,8 +145,8 @@ def _plot_spectrum(query, df, results, out_dir='out'):
 
 def main(args):
     '''main method.'''
-    num_spectra = 16
-    num_queries = 4
+    num_spectra = 256
+    num_queries = 16
     num_hits = 3
 
     chem, spec = mona.get_spectra(args[0], num_spectra)
