@@ -61,7 +61,9 @@ def _get_spec_trees(spectra):
     return [KDTree(spec) for spec in spectra]
 
 
-def _get_sim_scores(lib_spec_tree, queries):
+def _get_sim_scores(lib_spec_tree, queries, mass_accuracy=0.1):
     '''Get similarity score.'''
-    dists = lib_spec_tree.query(queries)[0]
+    dists = lib_spec_tree.query(
+        queries, distance_upper_bound=np.sqrt(mass_accuracy + 1.0))[0]
+    dists[dists == np.inf] = 1000
     return np.average(dists, weights=queries[:, :, 1], axis=1)
