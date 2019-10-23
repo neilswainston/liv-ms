@@ -13,33 +13,51 @@ import numpy as np
 class SpectraMatcher():
     '''Class to match spectra.'''
 
-    def __init__(self, spectra, min_val=0, max_val=1000):
-        self.__min_val = min_val
-        self.__max_val = max_val
-        _normalise_intensities(spectra)
+    def __init__(self, spectra):
+        self.__max_mz = _normalise_spectra(spectra)
         self.__spectra = _pad(spectra)
         self.__spec_trees = _get_spec_trees(spectra)
 
     def search(self, queries):
         '''Search.'''
-        _normalise_intensities(queries)
+        _normalise_spectra(queries, self.__max_mz)
         query_trees = _get_spec_trees(queries)
         queries = _pad(queries)
 
-        query_lib_scores = np.array([_get_sim_scores(spec_tree, queries)
-                                     for spec_tree in self.__spec_trees]).T
+        query_lib_scores = np.array(
+            [self.__get_sim_scores(spec_tree, queries)
+             for spec_tree in self.__spec_trees]).T
 
-        lib_query_scores = np.array([_get_sim_scores(spec_tree, self.__spectra)
-                                     for spec_tree in query_trees])
+        lib_query_scores = np.array(
+            [self.__get_sim_scores(spec_tree, self.__spectra)
+             for spec_tree in query_trees])
 
         return (query_lib_scores + lib_query_scores) / 2
 
+    def __get_sim_scores(self, lib_spec_tree, queries,
+                         mass_acc=0.1, inten_acc=0.1):
+        '''Get similarity score.'''
+        dists = lib_spec_tree.query(
+            queries,
+            distance_upper_bound=np.sqrt(
+                mass_acc / self.__max_mz + inten_acc))[0]
+        dists[dists == np.inf] = np.sqrt(2)
+        return np.average(dists / np.sqrt(2), weights=queries[:, :, 1], axis=1)
 
-def _normalise_intensities(spectra):
-    '''Normalise intensities.'''
-    # Noamalise intensities:
+
+def _normalise_spectra(spectra, max_mz=float('NaN')):
+    '''Normalise spectra.'''
+    if np.isnan(max_mz):
+        max_mz = max([max(spec[:, 0]) for spec in spectra])
+
     for spec in spectra:
+        # Normalise mz:
+        spec[:, 0] = spec[:, 0] / max_mz
+
+        # Normalise intensities:
         spec[:, 1] = spec[:, 1] / spec[:, 1].sum()
+
+    return max_mz
 
 
 def _pad(spectra):
@@ -61,9 +79,6 @@ def _get_spec_trees(spectra):
     return [KDTree(spec) for spec in spectra]
 
 
-def _get_sim_scores(lib_spec_tree, queries, mass_accuracy=0.1):
-    '''Get similarity score.'''
-    dists = lib_spec_tree.query(
-        queries, distance_upper_bound=np.sqrt(mass_accuracy + 1.0))[0]
-    dists[dists == np.inf] = 1000
-    return np.average(dists, weights=queries[:, :, 1], axis=1)
+# spec_trees = _get_spec_trees([[[1, 1]]])
+# print(_get_sim_scores(spec_trees[0], np.array(
+#    [[[0, 1e-16]]]), mass_accuracy=float('inf')))
