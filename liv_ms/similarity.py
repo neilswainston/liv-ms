@@ -8,6 +8,7 @@ All rights reserved.
 # pylint: disable=too-few-public-methods
 # pylint: disable=wrong-import-order
 from scipy.spatial import KDTree
+from sklearn.metrics.pairwise import cosine_similarity
 
 from liv_ms import spectra
 import numpy as np
@@ -16,15 +17,49 @@ import numpy as np
 class SpectraMatcher():
     '''Class to match spectra.'''
 
-    def __init__(self, spec):
-        self.__max_mz = spectra.normalise(spec)
-        self.__spectra = spectra.pad(spec)
-        self.__spec_trees = _get_spec_trees(spec)
+    def __init__(self, spec, *kargs, **kwargs):
+        pass
 
-    def search(self, queries):
+    def search(self, queries, *kargs, **kwargs):
+        '''Search.'''
+
+
+class CosineSpectraMatcher(SpectraMatcher):
+    '''Class to match spectra.'''
+
+    def __init__(self, specs, bin_size=0.1, min_val=0, max_val=1000):
+        super(CosineSpectraMatcher, self).__init__(specs)
+        self.__bin_size = bin_size
+        self.__min_val = min_val
+        self.__max_val = max_val
+        self.__spec_matrix = spectra.bin_spec(specs,
+                                              self.__bin_size,
+                                              self.__min_val,
+                                              self.__max_val)
+
+    def search(self, queries, *kargs, **kwargs):
+        '''Search.'''
+        query_matrix = spectra.bin_spec(queries,
+                                        self.__bin_size,
+                                        self.__min_val,
+                                        self.__max_val)
+
+        return cosine_similarity(query_matrix, self.__spec_matrix)
+
+
+class KDTreeSpectraMatcher(SpectraMatcher):
+    '''Class to match spectra.'''
+
+    def __init__(self, specs):
+        super(KDTreeSpectraMatcher, self).__init__(specs)
+        self.__max_mz = spectra.normalise(specs)
+        self.__spectra = spectra.pad(specs)
+        self.__spec_trees = [KDTree(s) for s in specs]
+
+    def search(self, queries, *kargs, **kwargs):
         '''Search.'''
         spectra.normalise(queries, self.__max_mz)
-        query_trees = _get_spec_trees(queries)
+        query_trees = [KDTree(s) for s in queries]
         queries = spectra.pad(queries)
 
         query_lib_scores = np.array(
@@ -46,11 +81,6 @@ class SpectraMatcher():
                 mass_acc / self.__max_mz + inten_acc))[0]
         dists[dists == np.inf] = np.sqrt(2)
         return np.average(dists / np.sqrt(2), weights=queries[:, :, 1], axis=1)
-
-
-def _get_spec_trees(spec):
-    '''Get KDTree for each spectrum in spectra.'''
-    return [KDTree(s) for s in spec]
 
 
 # spec_trees = _get_spec_trees([[[1, 1]]])

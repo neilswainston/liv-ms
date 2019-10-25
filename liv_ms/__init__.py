@@ -151,7 +151,7 @@ def main(args):
     df = get_df(chem, spec)
 
     spectra = _get_spectra(df)
-    matcher = similarity.SpectraMatcher(spectra)
+    matcher = similarity.KDTreeSpectraMatcher(spectra)
 
     query_df = df.sample(num_queries)
     queries = _get_spectra(query_df)
