@@ -14,6 +14,17 @@ import numpy as np
 class TestSpectra(unittest.TestCase):
     '''Class to test methods in spectra module.'''
 
+    def test_pad(self):
+        '''Test pad method of spectra module.'''
+        spec = np.array([
+            [[1.0, 6.0]],
+            [[5.0, 0.02], [10.0, 0.08]]])
+
+        padded = spectra.pad(spec)
+
+        self.assertEqual(len(padded[0]), 2)
+        np.testing.assert_allclose(padded[0][1], [0.0, 0.0])
+
     def test_normalise_simple(self):
         '''Test normalise method of spectra module.'''
         spec = np.array([[[1.0, 6.0], [3.0, 4.0]]])
