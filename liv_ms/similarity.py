@@ -14,15 +14,15 @@ class SpectraMatcher():
     '''Class to match spectra.'''
 
     def __init__(self, spectra):
-        self.__max_mz = _normalise_spectra(spectra)
-        self.__spectra = _pad(spectra)
+        self.__max_mz = normalise_spectra(spectra)
+        self.__spectra = pad(spectra)
         self.__spec_trees = _get_spec_trees(spectra)
 
     def search(self, queries):
         '''Search.'''
-        _normalise_spectra(queries, self.__max_mz)
+        normalise_spectra(queries, self.__max_mz)
         query_trees = _get_spec_trees(queries)
-        queries = _pad(queries)
+        queries = pad(queries)
 
         query_lib_scores = np.array(
             [self.__get_sim_scores(spec_tree, queries)
@@ -45,7 +45,7 @@ class SpectraMatcher():
         return np.average(dists / np.sqrt(2), weights=queries[:, :, 1], axis=1)
 
 
-def _normalise_spectra(spectra, max_mz=float('NaN')):
+def normalise_spectra(spectra, max_mz=float('NaN')):
     '''Normalise spectra.'''
     if np.isnan(max_mz):
         max_mz = max([max(spec[:, 0]) for spec in spectra])
@@ -60,7 +60,7 @@ def _normalise_spectra(spectra, max_mz=float('NaN')):
     return max_mz
 
 
-def _pad(spectra):
+def pad(spectra):
     '''Pad spectra.'''
     padded = []
     max_len = max([len(query) for query in spectra])
