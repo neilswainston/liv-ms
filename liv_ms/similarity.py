@@ -8,7 +8,7 @@ All rights reserved.
 # pylint: disable=too-few-public-methods
 # pylint: disable=wrong-import-order
 from scipy.spatial import KDTree
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_distances
 
 from liv_ms import spectra
 import numpy as np
@@ -44,7 +44,7 @@ class CosineSpectraMatcher(SpectraMatcher):
                                         self.__min_val,
                                         self.__max_val)
 
-        return 1 - cosine_similarity(query_matrix, self.__spec_matrix)
+        return cosine_distances(query_matrix, self.__spec_matrix)
 
 
 class KDTreeSpectraMatcher(SpectraMatcher):
