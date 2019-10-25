@@ -5,6 +5,7 @@ All rights reserved.
 
 @author: neilswainston
 '''
+# pylint: disable=no-self-use
 # pylint: disable=wrong-import-order
 import unittest
 from liv_ms import spectra
@@ -24,6 +25,21 @@ class TestSpectra(unittest.TestCase):
 
         self.assertEqual(len(padded[0]), 2)
         np.testing.assert_allclose(padded[0][1], [0.0, 0.0])
+
+    def test_bin_spec(self):
+        '''Test bin_spec method of spectra module.'''
+        spec = np.array([
+            [[1.17, 6.0], [1.18, 4.0], [1.9, 5.0], [2, 0.3]],
+            [[0.9, 0.02], [10.0, 0.08]]])
+
+        binned_spec = spectra.bin_spec(spec, 0.1, 1, 2)
+
+        expected = [[0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+
+        np.testing.assert_allclose(binned_spec.toarray(),
+                                   expected,
+                                   rtol=1e-3)
 
     def test_normalise_simple(self):
         '''Test normalise method of spectra module.'''

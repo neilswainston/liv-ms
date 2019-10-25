@@ -41,20 +41,20 @@ def pad(spectra):
     return np.array(padded)
 
 
-def bin_spec(specs, bin_size, min_val, max_val):
+def bin_spec(specs, bin_size, min_mz, max_mz):
     '''Bin spectra.'''
     row = []
     col = []
     data = []
 
-    num_bins = int((max_val - min_val) / bin_size)
+    num_bins = int((max_mz - min_mz) / bin_size)
 
     for spec_idx, spec in enumerate(specs):
         binned_spec = defaultdict(int)
 
-        for mass, intensity in zip(*spec):
-            if min_val < mass < max_val:
-                binned_mass = int(mass / bin_size)
+        for m_z, intensity in spec:
+            if min_mz < m_z < max_mz:
+                binned_mass = int((m_z - min_mz) / bin_size)
                 binned_spec[binned_mass] += intensity
 
         row.extend([spec_idx] * len(binned_spec))
