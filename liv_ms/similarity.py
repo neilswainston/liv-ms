@@ -8,7 +8,7 @@ All rights reserved.
 # pylint: disable=too-few-public-methods
 # pylint: disable=wrong-import-order
 from scipy.spatial import KDTree
-from sklearn.metrics.pairwise import cosine_distances
+from sklearn.metrics.pairwise import pairwise_distances
 
 from liv_ms import spectra
 import numpy as np
@@ -24,11 +24,11 @@ class SpectraMatcher():
         '''Search.'''
 
 
-class CosineSpectraMatcher(SpectraMatcher):
+class BinnedSpectraMatcher(SpectraMatcher):
     '''Class to match spectra.'''
 
     def __init__(self, specs, bin_size=0.1, min_val=0, max_val=1000):
-        super(CosineSpectraMatcher, self).__init__(specs)
+        super(BinnedSpectraMatcher, self).__init__(specs)
         self.__bin_size = bin_size
         self.__min_val = min_val
         self.__max_val = max_val
@@ -37,14 +37,15 @@ class CosineSpectraMatcher(SpectraMatcher):
                                               self.__min_val,
                                               self.__max_val)
 
-    def search(self, queries, *kargs, **kwargs):
+    def search(self, queries, metric='euclidean'):
         '''Search.'''
         query_matrix = spectra.bin_spec(queries,
                                         self.__bin_size,
                                         self.__min_val,
                                         self.__max_val)
 
-        return cosine_distances(query_matrix, self.__spec_matrix)
+        return pairwise_distances(query_matrix, self.__spec_matrix,
+                                  metric=metric)
 
 
 class KDTreeSpectraMatcher(SpectraMatcher):
@@ -56,7 +57,7 @@ class KDTreeSpectraMatcher(SpectraMatcher):
         self.__spectra = spectra.pad(specs)
         self.__spec_trees = [KDTree(s) for s in specs]
 
-    def search(self, queries, *kargs, **kwargs):
+    def search(self, queries):
         '''Search.'''
         spectra.normalise(queries, self.__max_mz)
         query_trees = [KDTree(s) for s in queries]
