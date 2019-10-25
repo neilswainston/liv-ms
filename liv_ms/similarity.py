@@ -44,7 +44,7 @@ class CosineSpectraMatcher(SpectraMatcher):
                                         self.__min_val,
                                         self.__max_val)
 
-        return cosine_similarity(query_matrix, self.__spec_matrix)
+        return 1 - cosine_similarity(query_matrix, self.__spec_matrix)
 
 
 class KDTreeSpectraMatcher(SpectraMatcher):
