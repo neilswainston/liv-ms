@@ -6,23 +6,26 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=too-few-public-methods
+# pylint: disable=wrong-import-order
 from scipy.spatial import KDTree
+
+from liv_ms import spectra
 import numpy as np
 
 
 class SpectraMatcher():
     '''Class to match spectra.'''
 
-    def __init__(self, spectra):
-        self.__max_mz = normalise_spectra(spectra)
-        self.__spectra = pad(spectra)
-        self.__spec_trees = _get_spec_trees(spectra)
+    def __init__(self, spec):
+        self.__max_mz = spectra.normalise(spec)
+        self.__spectra = spectra.pad(spec)
+        self.__spec_trees = _get_spec_trees(spec)
 
     def search(self, queries):
         '''Search.'''
-        normalise_spectra(queries, self.__max_mz)
+        spectra.normalise(queries, self.__max_mz)
         query_trees = _get_spec_trees(queries)
-        queries = pad(queries)
+        queries = spectra.pad(queries)
 
         query_lib_scores = np.array(
             [self.__get_sim_scores(spec_tree, queries)
@@ -45,38 +48,9 @@ class SpectraMatcher():
         return np.average(dists / np.sqrt(2), weights=queries[:, :, 1], axis=1)
 
 
-def normalise_spectra(spectra, max_mz=float('NaN')):
-    '''Normalise spectra.'''
-    if np.isnan(max_mz):
-        max_mz = max([max(spec[:, 0]) for spec in spectra])
-
-    for spec in spectra:
-        # Normalise mz:
-        spec[:, 0] = spec[:, 0] / max_mz
-
-        # Normalise intensities:
-        spec[:, 1] = spec[:, 1] / spec[:, 1].sum()
-
-    return max_mz
-
-
-def pad(spectra):
-    '''Pad spectra.'''
-    padded = []
-    max_len = max([len(query) for query in spectra])
-
-    for spec in spectra:
-        padded.append(np.pad(spec,
-                             [(0, max_len - len(spec)), (0, 0)],
-                             'constant',
-                             constant_values=0))
-
-    return np.array(padded)
-
-
-def _get_spec_trees(spectra):
+def _get_spec_trees(spec):
     '''Get KDTree for each spectrum in spectra.'''
-    return [KDTree(spec) for spec in spectra]
+    return [KDTree(s) for s in spec]
 
 
 # spec_trees = _get_spec_trees([[[1, 1]]])
