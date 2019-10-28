@@ -5,8 +5,12 @@ All rights reserved.
 
 @author: neilswainston
 '''
+# pylint: disable=arguments-differ
 # pylint: disable=too-few-public-methods
+# pylint: disable=too-many-arguments
 # pylint: disable=wrong-import-order
+from abc import ABC, abstractmethod
+
 from scipy.spatial import KDTree
 from sklearn.metrics.pairwise import pairwise_distances
 
@@ -14,12 +18,13 @@ from liv_ms import spectra
 import numpy as np
 
 
-class SpectraMatcher():
+class SpectraMatcher(ABC):
     '''Class to match spectra.'''
 
     def __init__(self, spec, *kargs, **kwargs):
         pass
 
+    @abstractmethod
     def search(self, queries, *kargs, **kwargs):
         '''Search.'''
 
@@ -27,25 +32,31 @@ class SpectraMatcher():
 class BinnedSpectraMatcher(SpectraMatcher):
     '''Class to match spectra.'''
 
-    def __init__(self, specs, bin_size=0.1, min_val=0, max_val=1000):
+    def __init__(self, specs, metric='euclidean',
+                 bin_size=0.1, min_mz=0, max_mz=1000):
         super(BinnedSpectraMatcher, self).__init__(specs)
+        self.__metric = metric
         self.__bin_size = bin_size
-        self.__min_val = min_val
-        self.__max_val = max_val
+        self.__min_mz = min_mz
+        self.__max_mz = max_mz
         self.__spec_matrix = spectra.bin_spec(specs,
                                               self.__bin_size,
-                                              self.__min_val,
-                                              self.__max_val)
+                                              self.__min_mz,
+                                              self.__max_mz)
 
-    def search(self, queries, metric='euclidean'):
+        assert self.__spec_matrix.max()
+
+    def search(self, queries):
         '''Search.'''
         query_matrix = spectra.bin_spec(queries,
                                         self.__bin_size,
-                                        self.__min_val,
-                                        self.__max_val)
+                                        self.__min_mz,
+                                        self.__max_mz)
 
-        return pairwise_distances(query_matrix, self.__spec_matrix,
-                                  metric=metric)
+        dists = pairwise_distances(query_matrix, self.__spec_matrix,
+                                   metric=self.__metric)
+
+        return dists / self.__spec_matrix.max()
 
 
 class KDTreeSpectraMatcher(SpectraMatcher):

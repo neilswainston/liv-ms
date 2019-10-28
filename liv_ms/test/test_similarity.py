@@ -22,28 +22,39 @@ class TestSpectraMatcher(unittest.TestCase):
         num_query_peaks = 48
 
         # Get spectra:
-        spectra = _get_spectra(num_spectra, num_spec_peaks)
+        for matcher_cls in [similarity.BinnedSpectraMatcher,
+                            similarity.KDTreeSpectraMatcher]:
+            spectra = _get_spectra(num_spectra, num_spec_peaks)
+            queries = _get_spectra(num_queries, num_query_peaks)
 
-        matcher = similarity.SpectraMatcher(spectra)
+            matcher = matcher_cls(spectra)
+            result = matcher.search(queries)
 
-        queries = _get_spectra(num_queries, num_query_peaks)
+            self.assertEqual(result.shape, (num_queries, num_spectra))
 
-        result = matcher.search(queries)
-
-        self.assertEqual(result.shape, (num_queries, num_spectra))
-
-    def test_search_specific(self):
+    def test_search_equal(self):
         '''Test search method of SpectraMatcher class.'''
-        spectra = np.array([[[1, 0.2], [10, 0.3]],
-                            [[1, 0.2], [10, 0.3]],
-                            [[1, 0.2], [10, 0.3]]])
+        for matcher_cls in [similarity.BinnedSpectraMatcher,
+                            similarity.KDTreeSpectraMatcher]:
+            spectra = np.array([[[1, 0.2], [10, 0.3]]])
+            queries = np.copy(spectra)
 
-        matcher = similarity.SpectraMatcher(spectra)
+            matcher = matcher_cls(spectra)
+            result = matcher.search(queries)
 
-        queries = np.array([[[1, 0.2], [10, 0.3]]])
-        result = matcher.search(queries)
+            self.assertAlmostEqual(result[0][0], 0, 12)
 
-        self.assertAlmostEqual(result[0][0], 0, 12)
+    def test_search_distant(self):
+        '''Test search method of SpectraMatcher class.'''
+        for matcher_cls in [similarity.BinnedSpectraMatcher,
+                            similarity.KDTreeSpectraMatcher]:
+            spectra = np.array([[[800, 0.2]]])
+            queries = np.array([[[0, 1e-16]]])
+
+            matcher = matcher_cls(spectra)
+            result = matcher.search(queries)
+
+            self.assertAlmostEqual(result[0][0], 1, 12)
 
 
 def _get_spectra(num_spectra, num_peaks):
