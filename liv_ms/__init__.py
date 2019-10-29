@@ -18,7 +18,7 @@ from matplotlib import collections
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from liv_ms import similarity
+from liv_ms import similarity, spectra
 from liv_ms.spectra import mona
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,16 +72,6 @@ def _get_top_idxs(arr, n):
     return idxs[min_elements_order]
 
 
-def _get_spectra(df):
-    '''Get spectra.'''
-    return df.apply(_get_peaks, axis=1).to_numpy()
-
-
-def _get_peaks(row):
-    '''Get peaks.'''
-    return np.column_stack(row[['m/z', 'I']])
-
-
 def _get_data(idxs, data):
     '''Get data for best matches.'''
     return data.loc[idxs]
@@ -90,11 +80,11 @@ def _get_data(idxs, data):
 def _plot_spectrum(query, df, results, out_dir='out'):
     '''Plot spectrum.'''
     # Get data:
-    query_spec = _get_spectra(query.to_frame().T)[0]
+    query_spec = spectra.get_spectra(query.to_frame().T)[0]
     query_lines = [[(x, 0), (x, y)] for x, y in query_spec]
     query_col = ['green' for _ in query_spec]
 
-    lib_specs = _get_spectra(df.loc[results[:, 0]])
+    lib_specs = spectra.get_spectra(df.loc[results[:, 0]])
 
     # img = Draw.MolToImage(Chem.MolFromSmiles(res[3]), bgColor=None)
 
@@ -137,18 +127,18 @@ def main(args):
     '''main method.'''
     num_spectra = 256
     num_queries = 6
-    num_hits = 4
+    num_hits = 10
 
     # Get spectra:
     df = mona.get_spectra(args[0], num_spectra)
-    spectra = _get_spectra(df)
+    specs = spectra.get_spectra(df)
 
     # Initialise SpectraMatcher:
-    matcher = similarity.CosineSpectraMatcher(spectra)
+    matcher = similarity.KDTreeSpectraMatcher(specs, use_i=False)
 
     # Run queries:
     query_df = df.sample(num_queries)
-    queries = _get_spectra(query_df)
+    queries = spectra.get_spectra(query_df)
     result = search(matcher, queries, df, num_hits)
 
     # Plot results:

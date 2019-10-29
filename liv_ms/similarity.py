@@ -62,11 +62,13 @@ class BinnedSpectraMatcher(SpectraMatcher):
 class KDTreeSpectraMatcher(SpectraMatcher):
     '''Class to match spectra.'''
 
-    def __init__(self, specs, use_i):
+    def __init__(self, specs, use_i, mass_acc=0.1, inten_acc=0.1):
         super(KDTreeSpectraMatcher, self).__init__(specs)
         self.__max_mz = spectra.normalise(specs)
         self.__spectra = spectra.pad(specs)
         self.__use_i = use_i
+        self.__mass_acc = mass_acc
+        self.__inten_acc = inten_acc
         self.__spec_trees = self.__get_trees(specs)
 
     def search(self, queries):
@@ -94,26 +96,29 @@ class KDTreeSpectraMatcher(SpectraMatcher):
         # Return 2D trees: m/z and I:
         return [KDTree(s) for s in self.__get_data(spec)]
 
-    def __get_data(self, spec):
+    def __get_data(self, specs):
         '''Get data.'''
         # Return 2D data: m/z and I:
         if self.__use_i:
-            return spec
+            return specs
 
         # Return 1D data: m/z only:
-        return spec[:, :, 0].reshape(spec.shape[0], spec.shape[1], 1)
+        return np.array([spec[:, 0].reshape(spec.shape[0], 1)
+                         for spec in specs])
 
-    def __get_sim_scores(self, lib_spec_tree, queries, weights,
-                         mass_acc=0.1, inten_acc=0.1):
+    def __get_sim_scores(self, lib_spec_tree, queries, weights):
         '''Get similarity score.'''
-        dists = lib_spec_tree.query(
+        max_dist = np.sqrt(2) if self.__use_i else 1
+
+        dist_upp_bnd = np.sqrt(
+            (self.__mass_acc / self.__max_mz)**2 + self.__inten_acc**2) \
+            if self.__use_i \
+            else self.__mass_acc / self.__max_mz
+
+        dists, _ = lib_spec_tree.query(
             queries,
-            distance_upper_bound=np.sqrt(
-                mass_acc / self.__max_mz + inten_acc))[0]
-        dists[dists == np.inf] = np.sqrt(2)
-        return np.average(dists / np.sqrt(2), weights=weights, axis=1)
+            distance_upper_bound=dist_upp_bnd)
 
+        dists[dists == np.inf] = max_dist
 
-# spec_trees = _get_spec_trees([[[1, 1]]])
-# print(_get_sim_scores(spec_trees[0], np.array(
-#    [[[0, 1e-16]]]), mass_accuracy=float('inf')))
+        return np.average(dists / max_dist, weights=weights, axis=1)

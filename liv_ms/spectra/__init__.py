@@ -5,11 +5,22 @@ All rights reserved.
 
 @author: neilswainston
 '''
+# pylint: disable=invalid-name
 from collections import defaultdict
 
 from scipy.sparse import coo_matrix
 
 import numpy as np
+
+
+def get_spectra(df):
+    '''Get spectra.'''
+    return df.apply(_get_peaks, axis=1).to_numpy()
+
+
+def _get_peaks(row):
+    '''Get peaks.'''
+    return np.column_stack(row[['m/z', 'I']])
 
 
 def normalise(spectra, max_mz=float('NaN')):
