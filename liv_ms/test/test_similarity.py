@@ -6,7 +6,9 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=wrong-import-order
+from functools import partial
 import unittest
+
 from liv_ms import similarity
 import numpy as np
 
@@ -22,8 +24,7 @@ class TestSpectraMatcher(unittest.TestCase):
         num_query_peaks = 48
 
         # Get spectra:
-        for matcher_cls in [similarity.BinnedSpectraMatcher,
-                            similarity.KDTreeSpectraMatcher]:
+        for matcher_cls in _get_matchers():
             spectra = _get_spectra(num_spectra, num_spec_peaks)
             queries = _get_spectra(num_queries, num_query_peaks)
 
@@ -34,8 +35,7 @@ class TestSpectraMatcher(unittest.TestCase):
 
     def test_search_equal(self):
         '''Test search method of SpectraMatcher class.'''
-        for matcher_cls in [similarity.BinnedSpectraMatcher,
-                            similarity.KDTreeSpectraMatcher]:
+        for matcher_cls in _get_matchers():
             spectra = np.array([[[1, 0.2], [10, 0.3]]])
             queries = np.copy(spectra)
 
@@ -46,8 +46,7 @@ class TestSpectraMatcher(unittest.TestCase):
 
     def test_search_distant(self):
         '''Test search method of SpectraMatcher class.'''
-        for matcher_cls in [similarity.BinnedSpectraMatcher,
-                            similarity.KDTreeSpectraMatcher]:
+        for matcher_cls in _get_matchers():
             spectra = np.array([[[800, 0.2]]])
             queries = np.array([[[0, 1e-16]]])
 
@@ -60,6 +59,13 @@ class TestSpectraMatcher(unittest.TestCase):
 def _get_spectra(num_spectra, num_peaks):
     '''Get spectra.'''
     return np.random.rand(num_spectra, num_peaks, 2)
+
+
+def _get_matchers():
+    '''Get matchers.'''
+    return [similarity.BinnedSpectraMatcher,
+            partial(similarity.KDTreeSpectraMatcher, use_i=True),
+            partial(similarity.KDTreeSpectraMatcher, use_i=False)]
 
 
 if __name__ == "__main__":

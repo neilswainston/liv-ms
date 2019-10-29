@@ -62,29 +62,48 @@ class BinnedSpectraMatcher(SpectraMatcher):
 class KDTreeSpectraMatcher(SpectraMatcher):
     '''Class to match spectra.'''
 
-    def __init__(self, specs):
+    def __init__(self, specs, use_i):
         super(KDTreeSpectraMatcher, self).__init__(specs)
         self.__max_mz = spectra.normalise(specs)
         self.__spectra = spectra.pad(specs)
-        self.__spec_trees = [KDTree(s) for s in specs]
+        self.__use_i = use_i
+        self.__spec_trees = self.__get_trees(specs)
 
     def search(self, queries):
         '''Search.'''
         spectra.normalise(queries, self.__max_mz)
-        query_trees = [KDTree(s) for s in queries]
+        query_trees = self.__get_trees(queries)
         queries = spectra.pad(queries)
 
         query_lib_scores = np.array(
-            [self.__get_sim_scores(spec_tree, queries)
+            [self.__get_sim_scores(spec_tree,
+                                   self.__get_data(queries),
+                                   weights=queries[:, :, 1])
              for spec_tree in self.__spec_trees]).T
 
         lib_query_scores = np.array(
-            [self.__get_sim_scores(spec_tree, self.__spectra)
-             for spec_tree in query_trees])
+            [self.__get_sim_scores(query_tree,
+                                   self.__get_data(self.__spectra),
+                                   weights=self.__spectra[:, :, 1])
+             for query_tree in query_trees])
 
         return (query_lib_scores + lib_query_scores) / 2
 
-    def __get_sim_scores(self, lib_spec_tree, queries,
+    def __get_trees(self, spec):
+        '''Get KDTrees.'''
+        # Return 2D trees: m/z and I:
+        return [KDTree(s) for s in self.__get_data(spec)]
+
+    def __get_data(self, spec):
+        '''Get data.'''
+        # Return 2D data: m/z and I:
+        if self.__use_i:
+            return spec
+
+        # Return 1D data: m/z only:
+        return spec[:, :, 0].reshape(spec.shape[0], spec.shape[1], 1)
+
+    def __get_sim_scores(self, lib_spec_tree, queries, weights,
                          mass_acc=0.1, inten_acc=0.1):
         '''Get similarity score.'''
         dists = lib_spec_tree.query(
@@ -92,7 +111,7 @@ class KDTreeSpectraMatcher(SpectraMatcher):
             distance_upper_bound=np.sqrt(
                 mass_acc / self.__max_mz + inten_acc))[0]
         dists[dists == np.inf] = np.sqrt(2)
-        return np.average(dists / np.sqrt(2), weights=queries[:, :, 1], axis=1)
+        return np.average(dists / np.sqrt(2), weights=weights, axis=1)
 
 
 # spec_trees = _get_spec_trees([[[1, 1]]])
