@@ -25,6 +25,8 @@ def _get_peaks(row):
 
 def normalise(spectra, max_mz=float('NaN')):
     '''Normalise spectra.'''
+    normalised = []
+
     if np.isnan(max_mz):
         max_mz = max([max(spec[:, 0]) for spec in spectra])
 
@@ -35,7 +37,10 @@ def normalise(spectra, max_mz=float('NaN')):
         # Normalise intensities:
         spec[:, 1] = spec[:, 1] / spec[:, 1].sum()
 
-    return max_mz
+        # Reject masses > max_mass:
+        normalised.append(spec[spec[:, 0] <= 1])
+
+    return np.array(normalised), max_mz
 
 
 def pad(spectra):

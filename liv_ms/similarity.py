@@ -10,7 +10,7 @@ All rights reserved.
 # pylint: disable=too-many-arguments
 # pylint: disable=wrong-import-order
 from abc import ABC, abstractmethod
-
+from functools import partial
 from scipy.spatial import KDTree
 from sklearn.metrics.pairwise import pairwise_distances
 
@@ -27,6 +27,50 @@ class SpectraMatcher(ABC):
     @abstractmethod
     def search(self, queries, *kargs, **kwargs):
         '''Search.'''
+
+
+class SimpleSpectraMatcher(SpectraMatcher):
+    '''Class to match spectra.'''
+
+    def __init__(self, specs):
+        super(SimpleSpectraMatcher, self).__init__(specs)
+        self.__spectra, self.__max_mz = spectra.normalise(specs)
+        self.__spectra = spectra.pad(self.__spectra)
+
+    def search(self, queries):
+        '''Search.'''
+        queries, _ = spectra.normalise(queries, self.__max_mz)
+        queries = spectra.pad(queries)
+
+        fnc = partial(closest_dist,
+                      queries=self.__spectra[:, :, 0],
+                      weights=self.__spectra[:, :, 1])
+
+        lib_query_scores = np.apply_along_axis(fnc, 1, queries[:, :, 0])
+
+        fnc = partial(closest_dist,
+                      queries=queries[:, :, 0],
+                      weights=queries[:, :, 1])
+
+        query_lib_scores = np.apply_along_axis(
+            fnc, 1, self.__spectra[:, :, 0]).T
+
+        return (query_lib_scores + lib_query_scores) / 2
+
+
+def closest_dist(target, queries, weights):
+    '''Get closest distances between query and spec,
+    assuming sorted by m/s.'''
+    len_target = len(target)
+    sorted_idx = np.searchsorted(target, queries)
+    sorted_idx[sorted_idx == len_target] = len_target - 1
+
+    mask = (sorted_idx > 0) & \
+        ((np.abs(queries - target[sorted_idx - 1])
+          < np.abs(queries - target[sorted_idx])))
+
+    return np.average(np.abs(queries - target[tuple([sorted_idx - mask])]),
+                      weights=weights, axis=1)
 
 
 class BinnedSpectraMatcher(SpectraMatcher):
@@ -64,7 +108,7 @@ class KDTreeSpectraMatcher(SpectraMatcher):
 
     def __init__(self, specs, use_i, mass_acc=0.1, inten_acc=0.1):
         super(KDTreeSpectraMatcher, self).__init__(specs)
-        self.__max_mz = spectra.normalise(specs)
+        self.__spectra, self.__max_mz = spectra.normalise(specs)
         self.__spectra = spectra.pad(specs)
         self.__use_i = use_i
         self.__mass_acc = mass_acc
@@ -73,7 +117,7 @@ class KDTreeSpectraMatcher(SpectraMatcher):
 
     def search(self, queries):
         '''Search.'''
-        spectra.normalise(queries, self.__max_mz)
+        queries, _ = spectra.normalise(queries, self.__max_mz)
         query_trees = self.__get_trees(queries)
         queries = spectra.pad(queries)
 

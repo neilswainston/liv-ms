@@ -81,17 +81,20 @@ class TestSpectraMatcher(unittest.TestCase):
 
             scores.append(result[0][0])
 
-        np.testing.assert_allclose(scores, [0.244, 0.604, 0.127], atol=0.01)
+        np.testing.assert_allclose(
+            scores, [0.003, 0.244, 0.604, 0.127], atol=0.01)
 
 
 def _get_spectra(num_spectra, num_peaks):
-    '''Get spectra.'''
-    return np.random.rand(num_spectra, num_peaks, 2)
+    '''Get spectra, sorted by mass.'''
+    spec = np.random.rand(num_spectra, num_peaks, 2)
+    return np.sort(spec, axis=1)
 
 
 def _get_matchers():
     '''Get matchers.'''
-    return [similarity.BinnedSpectraMatcher,
+    return [similarity.SimpleSpectraMatcher,
+            similarity.BinnedSpectraMatcher,
             partial(similarity.KDTreeSpectraMatcher, use_i=True),
             partial(similarity.KDTreeSpectraMatcher, use_i=False)]
 

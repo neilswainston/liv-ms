@@ -126,15 +126,16 @@ def _plot_spectrum(query, df, results, out_dir='out'):
 def main(args):
     '''main method.'''
     num_spectra = 256
-    num_queries = 6
-    num_hits = 10
+    num_queries = 16
+    num_hits = 5
 
     # Get spectra:
     df = mona.get_spectra(args[0], num_spectra)
     specs = spectra.get_spectra(df)
 
     # Initialise SpectraMatcher:
-    matcher = similarity.KDTreeSpectraMatcher(specs, use_i=False)
+    # matcher = similarity.KDTreeSpectraMatcher(specs, use_i=False)
+    matcher = similarity.SimpleSpectraMatcher(specs)
 
     # Run queries:
     query_df = df.sample(num_queries)
@@ -149,4 +150,13 @@ def main(args):
 
 
 if __name__ == '__main__':
+    import cProfile
+
+    pr = cProfile.Profile()
+    pr.enable()
+
     main(sys.argv[1:])
+
+    pr.disable()
+
+    pr.print_stats(sort='time')
