@@ -8,6 +8,7 @@ All rights reserved.
 # pylint: disable=invalid-name
 # pylint: disable=ungrouped-imports
 # pylint: disable=wrong-import-order
+from collections.abc import Iterable
 from functools import partial
 from itertools import zip_longest
 import os.path
@@ -91,6 +92,9 @@ def _plot_spectrum(query, df, results, out_dir='out'):
     # Make plot
     fig, axes = plt.subplots(len(results), 1, sharex=True)
 
+    if not isinstance(axes, Iterable):
+        axes = [axes]
+
     for ax, res, lib_spec in zip(axes, results, lib_specs):
         ax.axhline(y=0, color='k', linewidth=1)
         ax.margins(x=0, y=0)
@@ -125,8 +129,8 @@ def _plot_spectrum(query, df, results, out_dir='out'):
 
 def main(args):
     '''main method.'''
-    num_spectra = 256
-    num_queries = 16
+    num_spectra = 5
+    num_queries = 1
     num_hits = 5
 
     # Get spectra:
