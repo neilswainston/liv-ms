@@ -61,6 +61,9 @@ class SimpleSpectraMatcher(SpectraMatcher):
 def closest_dist(target, queries, weights):
     '''Get closest distances between query and spec,
     assuming sorted by m/s.'''
+    # Only consider unpadded values:
+    target = target[target > 0]
+
     len_target = len(target)
     sorted_idx = np.searchsorted(target, queries)
     sorted_idx[sorted_idx == len_target] = len_target - 1
