@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 
-def run_queries(query_names, query_specs, lib_specs, lib_df, num_hits):
+def run_queries(query_names, query_specs, lib_df, lib_specs, num_hits):
     '''Run queries.'''
     # Initialise SpectraMatcher:
     matcher = similarity.SimpleSpectraMatcher(lib_specs)
@@ -105,22 +105,44 @@ def _get_data(idxs, data):
     return data.loc[idxs]
 
 
-def main(args):
-    '''main method.'''
-    num_spectra = 256
-    num_queries = 16
-    num_hits = 5
-
-    # Get spectra:
-    df = mona.get_spectra(args[0], num_spectra)
-    lib_specs = spectra.get_spectra(df)
+def _random_search(lib_df):
+    '''Random search.'''
+    lib_specs = spectra.get_spectra(lib_df)
 
     # Get queries:
-    query_df = df.sample(num_queries)
+    num_queries = 16
+    query_df = lib_df.sample(num_queries)
     query_specs = spectra.get_spectra(query_df)
 
     # Run queries:
-    run_queries(query_df['name'], query_specs, lib_specs, df, num_hits)
+    num_hits = 5
+    run_queries(query_df['name'], query_specs, lib_df, lib_specs, num_hits)
+
+
+def _specific_search(lib_df, query_idx, lib_idx):
+    '''Specific search.'''
+    lib_specs = spectra.get_spectra(lib_df.loc[[lib_idx]])
+
+    # Get queries:
+    query_df = lib_df.loc[[query_idx]]
+    query_specs = spectra.get_spectra(query_df)
+
+    # Run queries:
+    num_hits = 1
+    run_queries(query_df['name'], query_specs, lib_df, lib_specs, num_hits)
+
+
+def main(args):
+    '''main method.'''
+
+    # Get spectra:
+    num_spectra = 256
+    df = mona.get_spectra(args[0], num_spectra)
+
+    # _random_search(df)
+    query_idx = 125
+    lib_idx = 19
+    _specific_search(df, query_idx, lib_idx)
 
 
 if __name__ == '__main__':
