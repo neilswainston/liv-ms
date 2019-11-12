@@ -6,20 +6,17 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=invalid-name
-# pylint: disable=ungrouped-imports
 # pylint: disable=wrong-import-order
-from collections.abc import Iterable
 from functools import partial
 from itertools import zip_longest
 import os.path
 import random
 import sys
 
-from matplotlib import collections
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from liv_ms import similarity, spectra
+from liv_ms import plot, similarity, spectra
 from liv_ms.spectra import mona
 import matplotlib.pyplot as plt
 import numpy as np
@@ -59,7 +56,14 @@ def search(matcher, query_spec, df, num_hits):
 def plot_spectra(query_df, df, results):
     '''Plot spectra.'''
     for (_, query), result in zip(query_df.iterrows(), results):
-        _plot_spectrum(query, df, result)
+        query['spectrum'] = spectra.get_spectra(query.to_frame().T)[0]
+
+        hits = zip(*[result[:, 1], result[:, 4],
+                     spectra.get_spectra(df.loc[result[:, 0]])])
+
+        hits = [dict(zip(['name', 'score', 'spectrum'], hit)) for hit in hits]
+
+        plot.plot_spectrum(query, hits)
 
 
 def _get_top_idxs(arr, n):
@@ -78,59 +82,10 @@ def _get_data(idxs, data):
     return data.loc[idxs]
 
 
-def _plot_spectrum(query, df, results, out_dir='out'):
-    '''Plot spectrum.'''
-    # Get data:
-    query_spec = spectra.get_spectra(query.to_frame().T)[0]
-    query_lines = [[(x, 0), (x, y)] for x, y in query_spec]
-    query_col = ['green' for _ in query_spec]
-
-    lib_specs = spectra.get_spectra(df.loc[results[:, 0]])
-
-    # img = Draw.MolToImage(Chem.MolFromSmiles(res[3]), bgColor=None)
-
-    # Make plot
-    fig, axes = plt.subplots(len(results), 1, sharex=True)
-
-    if not isinstance(axes, Iterable):
-        axes = [axes]
-
-    for ax, res, lib_spec in zip(axes, results, lib_specs):
-        ax.axhline(y=0, color='k', linewidth=1)
-        ax.margins(x=0, y=0)
-
-        # Add 'peaks':
-        ax.add_collection(
-            collections.LineCollection(
-                query_lines + [[(x, 0), (x, -y)] for x, y in lib_spec],
-                colors=query_col + ['red' for _ in lib_spec],
-                alpha=0.5))
-
-        # Add (invisible) scatter points:
-        ax.scatter(*zip(*query_spec), s=0)
-        ax.scatter(*zip(*lib_spec), s=0)
-
-        # Format and save:
-        name = '_'.join([query['name'], res[1], '%.3f' % res[4]])
-        ax.set_title(name, fontsize=6)
-        ax.set_xlabel('m/z', fontsize=6)
-        ax.set_ylabel('I', fontsize=6)
-        ax.tick_params(axis='both', which='major', labelsize=6)
-        ax.tick_params(axis='both', which='minor', labelsize=4)
-        # ax2.figimage(img, 0, fig.bbox.ymax - img.size[1])
-
-    fig.tight_layout()
-
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-
-    plt.savefig(os.path.join(out_dir, query['name'] + '.png'), dpi=800)
-
-
 def main(args):
     '''main method.'''
-    num_spectra = 5
-    num_queries = 1
+    num_spectra = 256
+    num_queries = 16
     num_hits = 5
 
     # Get spectra:

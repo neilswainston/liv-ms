@@ -11,6 +11,7 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 from abc import ABC, abstractmethod
 from functools import partial
+
 from scipy.spatial import KDTree
 from sklearn.metrics.pairwise import pairwise_distances
 

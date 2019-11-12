@@ -6,8 +6,10 @@ All rights reserved.
 @author: neilswainston
 '''
 import ijson
+
 import numpy as np
 import pandas as pd
+
 
 _NAME_MAP = {'kegg': 'kegg.compound',
              'molecular formula': 'formula',
