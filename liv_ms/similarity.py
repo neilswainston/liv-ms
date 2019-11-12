@@ -33,48 +33,51 @@ class SpectraMatcher(ABC):
 class SimpleSpectraMatcher(SpectraMatcher):
     '''Class to match spectra.'''
 
-    def __init__(self, specs):
+    def __init__(self, specs, mass_acc=0.01, scorer=np.max):
         super(SimpleSpectraMatcher, self).__init__(specs)
         self.__spectra, self.__max_mz = spectra.normalise(specs)
         self.__spectra = spectra.pad(self.__spectra)
+        self.__mass_acc = mass_acc
+        self.__scorer = scorer
 
     def search(self, queries):
         '''Search.'''
         queries, _ = spectra.normalise(queries, self.__max_mz)
         queries = spectra.pad(queries)
 
-        fnc = partial(closest_dist,
+        fnc = partial(self.__get_sim_scores,
                       queries=self.__spectra[:, :, 0],
                       weights=self.__spectra[:, :, 1])
 
         lib_query_scores = np.apply_along_axis(fnc, 1, queries[:, :, 0])
 
-        fnc = partial(closest_dist,
+        fnc = partial(self.__get_sim_scores,
                       queries=queries[:, :, 0],
                       weights=queries[:, :, 1])
 
         query_lib_scores = np.apply_along_axis(
             fnc, 1, self.__spectra[:, :, 0]).T
 
-        return (query_lib_scores + lib_query_scores) / 2
+        return self.__scorer([query_lib_scores, lib_query_scores], axis=0)
 
+    def __get_sim_scores(self, target, queries, weights):
+        '''Get closest distances between query and spec,
+        assuming sorted by m/s.'''
+        # Only consider unpadded values:
+        target = target[target > 0]
 
-def closest_dist(target, queries, weights):
-    '''Get closest distances between query and spec,
-    assuming sorted by m/s.'''
-    # Only consider unpadded values:
-    target = target[target > 0]
+        len_target = len(target)
+        sorted_idx = np.searchsorted(target, queries)
+        sorted_idx[sorted_idx == len_target] = len_target - 1
 
-    len_target = len(target)
-    sorted_idx = np.searchsorted(target, queries)
-    sorted_idx[sorted_idx == len_target] = len_target - 1
+        mask = (sorted_idx > 0) & \
+            ((np.abs(queries - target[sorted_idx - 1])
+              < np.abs(queries - target[sorted_idx])))
 
-    mask = (sorted_idx > 0) & \
-        ((np.abs(queries - target[sorted_idx - 1])
-          < np.abs(queries - target[sorted_idx])))
+        dists = np.abs(queries - target[tuple([sorted_idx - mask])])
+        dists[dists > self.__mass_acc / self.__max_mz] = 1
 
-    return np.average(np.abs(queries - target[tuple([sorted_idx - mask])]),
-                      weights=weights, axis=1)
+        return np.average(dists, weights=weights, axis=1)
 
 
 class BinnedSpectraMatcher(SpectraMatcher):

@@ -139,10 +139,8 @@ def main(args):
     num_spectra = 256
     df = mona.get_spectra(args[0], num_spectra)
 
-    # _random_search(df)
-    query_idx = 125
-    lib_idx = 19
-    _specific_search(df, query_idx, lib_idx)
+    _random_search(df)
+    # _specific_search(df, 125, 19)
 
 
 if __name__ == '__main__':
