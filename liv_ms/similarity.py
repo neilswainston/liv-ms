@@ -116,11 +116,11 @@ class KDTreeSpectraMatcher(SpectraMatcher):
     def __init__(self, specs, use_i, mass_acc=0.1, inten_acc=0.1):
         super(KDTreeSpectraMatcher, self).__init__(specs)
         self.__spectra, self.__max_mz = spectra.normalise(specs)
-        self.__spectra = spectra.pad(specs)
         self.__use_i = use_i
         self.__mass_acc = mass_acc
         self.__inten_acc = inten_acc
-        self.__spec_trees = self.__get_trees(specs)
+        self.__spec_trees = self.__get_trees(self.__spectra)
+        self.__spectra = spectra.pad(self.__spectra)
 
     def search(self, queries):
         '''Search.'''

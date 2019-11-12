@@ -82,7 +82,10 @@ class TestSpectraMatcher(unittest.TestCase):
             scores.append(result[0][0])
 
         np.testing.assert_allclose(
-            scores, [0.003, 0.244, 0.604, 0.127], atol=0.01)
+            scores,
+            [0.003206, 0.002632, 0.148492, 0.134185, 0.995261, 0.994394,
+             0.243953, 0.606142, 0.134185],
+            atol=0.01)
 
 
 def _get_spectra(num_spectra, num_peaks):
@@ -93,7 +96,18 @@ def _get_spectra(num_spectra, num_peaks):
 
 def _get_matchers():
     '''Get matchers.'''
-    return [similarity.SimpleSpectraMatcher,
+    return [partial(similarity.SimpleSpectraMatcher,
+                    mass_acc=float('inf'), scorer=np.max),
+            partial(similarity.SimpleSpectraMatcher,
+                    mass_acc=float('inf'), scorer=np.average),
+            partial(similarity.SimpleSpectraMatcher,
+                    mass_acc=0.1, scorer=np.max),
+            partial(similarity.SimpleSpectraMatcher,
+                    mass_acc=0.1, scorer=np.average),
+            partial(similarity.SimpleSpectraMatcher,
+                    mass_acc=0.01, scorer=np.max),
+            partial(similarity.SimpleSpectraMatcher,
+                    mass_acc=0.01, scorer=np.average),
             similarity.BinnedSpectraMatcher,
             partial(similarity.KDTreeSpectraMatcher, use_i=True),
             partial(similarity.KDTreeSpectraMatcher, use_i=False)]
