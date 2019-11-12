@@ -23,6 +23,20 @@ import numpy as np
 import pandas as pd
 
 
+def run_queries(query_names, query_specs, lib_specs, df, num_hits):
+    '''Run queries.'''
+    # Initialise SpectraMatcher:
+    matcher = similarity.SimpleSpectraMatcher(lib_specs)
+
+    # Run queries:
+    result = search(matcher, query_specs, df, num_hits)
+
+    print(result)
+
+    # Plot results:
+    plot_spectra(query_names, query_specs, df, result)
+
+
 def search(matcher, query_spec, df, num_hits):
     '''Search.'''
     import time
@@ -53,10 +67,10 @@ def search(matcher, query_spec, df, num_hits):
     return np.dstack((match_data, score_data))
 
 
-def plot_spectra(query_df, df, results):
+def plot_spectra(query_names, queries, df, results):
     '''Plot spectra.'''
-    for (_, query), result in zip(query_df.iterrows(), results):
-        query['spectrum'] = spectra.get_spectra(query.to_frame().T)[0]
+    for query_name, query_spec, result in zip(query_names, queries, results):
+        query = {'name': query_name, 'spectrum': query_spec}
 
         hits = zip(*[result[:, 1], result[:, 4],
                      spectra.get_spectra(df.loc[result[:, 0]])])
@@ -90,22 +104,14 @@ def main(args):
 
     # Get spectra:
     df = mona.get_spectra(args[0], num_spectra)
-    specs = spectra.get_spectra(df)
+    lib_specs = spectra.get_spectra(df)
 
-    # Initialise SpectraMatcher:
-    # matcher = similarity.KDTreeSpectraMatcher(specs, use_i=False)
-    matcher = similarity.SimpleSpectraMatcher(specs)
+    # Get queries:
+    query_df = df.sample(num_queries)
+    query_specs = spectra.get_spectra(query_df)
 
     # Run queries:
-    query_df = df.sample(num_queries)
-    queries = spectra.get_spectra(query_df)
-    result = search(matcher, queries, df, num_hits)
-
-    # Plot results:
-    plot_spectra(query_df, df, result)
-
-    print(query_df['name'])
-    print(result)
+    run_queries(query_df['name'], query_specs, lib_specs, df, num_hits)
 
 
 if __name__ == '__main__':

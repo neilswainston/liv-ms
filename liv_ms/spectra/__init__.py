@@ -31,14 +31,17 @@ def normalise(spectra, max_mz=float('NaN')):
         max_mz = max([max(spec[:, 0]) for spec in spectra])
 
     for spec in spectra:
+        # Clone:
+        spec_copy = np.matrix.copy(spec)
+
         # Normalise mz:
-        spec[:, 0] = spec[:, 0] / max_mz
+        spec_copy[:, 0] = spec_copy[:, 0] / max_mz
 
         # Normalise intensities:
-        spec[:, 1] = spec[:, 1] / spec[:, 1].sum()
+        spec_copy[:, 1] = spec_copy[:, 1] / spec_copy[:, 1].sum()
 
         # Reject masses > max_mass:
-        normalised.append(spec[spec[:, 0] <= 1])
+        normalised.append(spec_copy[spec_copy[:, 0] <= 1])
 
     return np.array(normalised), max_mz
 
