@@ -23,21 +23,39 @@ import numpy as np
 import pandas as pd
 
 
-def run_queries(query_names, query_specs, lib_specs, df, num_hits):
+def run_queries(query_names, query_specs, lib_specs, lib_df, num_hits):
     '''Run queries.'''
     # Initialise SpectraMatcher:
     matcher = similarity.SimpleSpectraMatcher(lib_specs)
 
     # Run queries:
-    result = search(matcher, query_specs, df, num_hits)
+    hits = get_hits(matcher, query_specs, lib_df, num_hits)
 
-    print(result)
+    print(hits)
 
     # Plot results:
-    plot_spectra(query_names, query_specs, df, result)
+    hit_specs = lib_specs.take(hits[:, :, 0].astype(int))
+    plot_spectra(query_names, query_specs, hits, hit_specs)
 
 
-def search(matcher, query_spec, df, num_hits):
+def get_hits(matcher, query_specs, lib_df, num_hits):
+    '''Get hits.'''
+    hits = search(matcher, query_specs, num_hits)
+
+    # Get match data corresponding to top n hits:
+    lib_df.reset_index(inplace=True)
+
+    fnc = partial(_get_data, data=lib_df[['index',
+                                          'name',
+                                          'monoisotopic_mass_float',
+                                          'smiles']])
+
+    match_data = np.apply_along_axis(fnc, 1, hits[:, :, 0])
+
+    return np.dstack((match_data, hits[:, :, 1]))
+
+
+def search(matcher, query_spec, num_hits):
     '''Search.'''
     import time
     start = time.time()
@@ -53,27 +71,18 @@ def search(matcher, query_spec, df, num_hits):
     offset = np.arange(0, res.size, res.shape[1])
     score_data = np.take(res, offset[:, np.newaxis] + top_idxs)
 
-    # Get match data corresponding to top n hits:
-    df.reset_index(inplace=True)
-    fnc = partial(_get_data, data=df[['index',
-                                      'name',
-                                      'monoisotopic_mass_float',
-                                      'smiles']])
-
-    match_data = np.apply_along_axis(fnc, 1, top_idxs)
-
     print(time.time() - start)
 
-    return np.dstack((match_data, score_data))
+    return np.dstack((top_idxs, score_data))
 
 
-def plot_spectra(query_names, queries, df, results):
+def plot_spectra(query_names, queries, hit_data, hit_specs):
     '''Plot spectra.'''
-    for query_name, query_spec, result in zip(query_names, queries, results):
+    for query_name, query_spec, hit, hit_spec in zip(query_names, queries,
+                                                     hit_data, hit_specs):
         query = {'name': query_name, 'spectrum': query_spec}
 
-        hits = zip(*[result[:, 1], result[:, 4],
-                     spectra.get_spectra(df.loc[result[:, 0]])])
+        hits = zip(*[hit[:, 1], hit[:, 4], hit_spec])
 
         hits = [dict(zip(['name', 'score', 'spectrum'], hit)) for hit in hits]
 
