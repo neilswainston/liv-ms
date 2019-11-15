@@ -21,7 +21,7 @@ class SpectraSearcher():
 
     def search(self, query_specs, num_hits):
         '''Search.'''
-        hits = self.__search(query_specs, num_hits)
+        idx_score = self.__search(query_specs, num_hits)
 
         # Get match data corresponding to top n hits:
         fnc = partial(_get_data, data=self.__lib_df[['index',
@@ -29,9 +29,15 @@ class SpectraSearcher():
                                                      'monoisotopic_mass_float',
                                                      'smiles']])
 
-        match_data = np.apply_along_axis(fnc, 1, hits[:, :, 0])
+        match_data = np.apply_along_axis(fnc, 1, idx_score[:, :, 0])
 
-        return np.dstack((match_data, hits[:, :, 1]))
+        hits = np.dstack((match_data, idx_score[:, :, 1]))
+
+        fnc = partial(_to_dict, keys=[
+                      'index', 'name', 'monoisotopic_mass_float', 'smiles',
+                      'score'])
+
+        return np.apply_along_axis(fnc, 2, hits)
 
     def __search(self, query_spec, num_hits):
         '''Search.'''
@@ -64,3 +70,8 @@ def _get_top_idxs(arr, n):
 def _get_data(idxs, data):
     '''Get data for best matches.'''
     return data.loc[idxs]
+
+
+def _to_dict(vals, keys):
+    '''Convert to dictionary.'''
+    return dict(zip(*[keys, vals]))

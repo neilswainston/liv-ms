@@ -36,7 +36,7 @@ def run_queries(query_names, query_specs, lib_df, lib_specs, num_hits):
     print(hits)
 
     # Plot results:
-    hit_specs = lib_specs.take(hits[:, :, 0].astype(int))
+    hit_specs = lib_specs.take([[val['index'] for val in hit] for hit in hits])
     plot_spectra(query_names, query_specs, hits, hit_specs)
 
 
@@ -46,11 +46,10 @@ def plot_spectra(query_names, queries, hit_data, hit_specs):
                                                      hit_data, hit_specs):
         query = {'name': query_name, 'spectrum': query_spec}
 
-        hits = zip(*[hit[:, 1], hit[:, 4], hit_spec])
+        for h, s in zip(hit, hit_spec):
+            h.update({'spectrum': s})
 
-        hits = [dict(zip(['name', 'score', 'spectrum'], hit)) for hit in hits]
-
-        plot.plot_spectrum(query, hits)
+        plot.plot_spectrum(query, hit)
 
 
 def _random_search(lib_df):
