@@ -12,12 +12,12 @@ from rdkit import Chem, DataStructs
 from liv_ms import similarity
 
 
-def get_similarities(smiles):
+def get_similarities(smiles, fingerprint):
     '''Get similarities between chemicals represented by SMILES.'''
     sims = {}
 
     mols = [Chem.MolFromSmiles(sml) for sml in smiles]
-    fps = [Chem.RDKFingerprint(mol) for mol in mols]
+    fps = [fingerprint(mol) for mol in mols]
 
     for idx1, fp1 in enumerate(fps):
         for idx2 in range(idx1, len(fps)):
@@ -29,7 +29,7 @@ def get_similarities(smiles):
 
 def main(args):
     '''main method.'''
-    print(get_similarities(args))
+    print(get_similarities(args, Chem.RDKFingerprint))
 
 
 if __name__ == '__main__':

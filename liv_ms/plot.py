@@ -7,13 +7,16 @@ All rights reserved.
 '''
 # pylint: disable=invalid-name
 # pylint: disable=ungrouped-imports
+# pylint: disable=too-many-arguments
 # pylint: disable=wrong-import-order
 from collections.abc import Iterable
 import os
 
 from matplotlib import collections
+from sklearn.linear_model import LinearRegression
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_spectrum(query, hits, out_dir='out'):
@@ -56,3 +59,37 @@ def plot_spectrum(query, hits, out_dir='out'):
         os.makedirs(out_dir)
 
     plt.savefig(os.path.join(out_dir, query['name'] + '.png'), dpi=800)
+
+
+def plot_scatter(X, Y, name, xlabel, ylabel, out_dir='out'):
+    '''Scatter plot.'''
+    plt.clf()
+    plt.scatter(X, Y, s=1)
+
+    intercept, coeff, score = _best_fit(X, Y)
+    label = 'y = %.2f + %.2fx, R2 = %.2f' % (intercept, coeff, score)
+
+    print(name, label)
+
+    plt.plot(X, [intercept + coeff * xi for xi in X],
+             label=label,
+             linewidth=0.5)
+
+    plt.legend()
+
+    plt.title(name)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    plt.savefig(os.path.join(out_dir, name + '.png'), dpi=800)
+
+
+def _best_fit(x, y):
+    '''Get best fit.'''
+    x = np.array(x).reshape((-1, 1))
+    y = np.array(y)
+    model = LinearRegression().fit(x, y)
+    return model.intercept_, model.coef_, model.score(x, y)
