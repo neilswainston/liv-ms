@@ -24,7 +24,53 @@ import numpy as np
 import pandas as pd
 
 
-def random_search(match_func, lib_df, num_queries=16, num_hits=8,
+def analyse(df, max_path, mass_acc, scorer, out_dir):
+    '''Analyse correlation between spectra match score and chemical
+    similarity.'''
+    match_func = partial(similarity.SimpleSpectraMatcher,
+                         mass_acc=mass_acc,
+                         scorer=scorer)
+
+    fingerprint = partial(Chem.RDKFingerprint, maxPath=max_path)
+
+    hits = random_search(match_func, df)
+    # specific_search(matcher, df, 125, 19)
+
+    hit_results = []
+
+    for hit in hits:
+        for h in hit[1:]:
+            smiles = (hit[0]['smiles'], h['smiles'])
+            chem_sim = chem.get_similarities(smiles, fingerprint)
+
+            hit_results.append([hit[0]['name'], hit[0]['smiles'],
+                                h['name'], h['smiles'],
+                                h['score'], chem_sim[smiles]])
+
+    hit_df = pd.DataFrame(hit_results, columns=['query_name',
+                                                'query_smiles',
+                                                'hit_name',
+                                                'hit_smiles',
+                                                'score',
+                                                'chem_sim'])
+
+    name = 'RDKFingerprint(maxPath=%s)_%s_%s' \
+        % (max_path,
+           mass_acc,
+           scorer.__name__)
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    hit_df.to_csv(os.path.join(out_dir, '%s.csv' % name),
+                  index=False)
+
+    plot.plot_scatter(
+        hit_df['score'], hit_df['chem_sim'],
+        name, 'score', 'chem_sim', out_dir='out')
+
+
+def random_search(match_func, lib_df, num_queries=32, num_hits=64,
                   plot_dir=None):
     '''Random search.'''
     lib_specs = spectra.get_spectra(lib_df)
@@ -89,50 +135,12 @@ def main(args):
     out_dir = args[1]
 
     # Get spectra:
-    df = mona.get_spectra(args[0], num_spec=256)
+    df = mona.get_spectra(args[0], num_spec=1024)
 
-    fingerprint = Chem.RDKFingerprint
-
-    for mass_acc in [0.001, 0.003, 0.01, 0.03, 0.1]:
-        for scorer in [np.max, np.average]:
-            match_func = partial(similarity.SimpleSpectraMatcher,
-                                 mass_acc=mass_acc,
-                                 scorer=scorer)
-
-            hits = random_search(match_func, df)
-            # specific_search(matcher, df, 125, 19)
-
-            hit_results = []
-
-            for hit in hits:
-                for h in hit[1:]:
-                    smiles = (hit[0]['smiles'], h['smiles'])
-                    chem_sim = chem.get_similarities(smiles, fingerprint)
-
-                    hit_results.append([hit[0]['name'], hit[0]['smiles'],
-                                        h['name'], h['smiles'],
-                                        h['score'], chem_sim[smiles]])
-
-            hit_df = pd.DataFrame(hit_results, columns=['query_name',
-                                                        'query_smiles',
-                                                        'hit_name',
-                                                        'hit_smiles',
-                                                        'score',
-                                                        'chem_sim'])
-
-            name = '%s_%s_%s' % (mass_acc,
-                                 scorer.__name__,
-                                 fingerprint.__name__)
-
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
-
-            hit_df.to_csv(os.path.join(out_dir, '%s.csv' % name),
-                          index=False)
-
-            plot.plot_scatter(
-                hit_df['score'], hit_df['chem_sim'],
-                name, 'score', 'chem_sim', out_dir='out')
+    for max_path in range(3, 10):
+        for mass_acc in [0.001, 0.003, 0.01, 0.03, 0.1]:
+            for scorer in [np.max, np.average]:
+                analyse(df, max_path, mass_acc, scorer, out_dir)
 
 
 if __name__ == '__main__':
