@@ -10,7 +10,7 @@ import inspect
 
 def to_str(partial_func):
     '''Get string representation of a partial function.'''
-    keywords = partial_func.keywords
+    keywords = dict(partial_func.keywords)
 
     for key, value in keywords.items():
         if inspect.isfunction(value):

@@ -10,7 +10,7 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 from functools import partial
 import inspect
-from itertools import zip_longest
+from itertools import product, zip_longest
 import os.path
 import random
 import sys
@@ -123,6 +123,30 @@ def _plot_spectra(query_names, queries, hit_data, hit_specs, out_dir):
         plot.plot_spectrum(query, hit, out_dir)
 
 
+def _get_fngrprnt_funcs():
+    '''Get fingerprint functions.'''
+    fngrprnt_funcs = []
+
+    for max_path in range(3, 10):
+        fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
+                                      maxPath=max_path))
+
+    return fngrprnt_funcs
+
+
+def _get_match_funcs():
+    '''Get match functions.'''
+    match_funcs = []
+
+    for mass_acc in [0.001, 0.003, 0.01, 0.03, 0.1]:
+        for scorer in [np.max, np.average]:
+            match_funcs.append(partial(similarity.SimpleSpectraMatcher,
+                                       mass_acc=mass_acc,
+                                       scorer=scorer))
+
+    return match_funcs
+
+
 def main(args):
     '''main method.'''
     out_dir = args[1]
@@ -130,16 +154,9 @@ def main(args):
     # Get spectra:
     df = mona.get_spectra(args[0], num_spec=1024)
 
-    for max_path in range(3, 10):
-        fngrprnt_func = partial(Chem.RDKFingerprint, maxPath=max_path)
-
-        for mass_acc in [0.001, 0.003, 0.01, 0.03, 0.1]:
-            for scorer in [np.max, np.average]:
-                match_func = partial(similarity.SimpleSpectraMatcher,
-                                     mass_acc=mass_acc,
-                                     scorer=scorer)
-
-                analyse(df, fngrprnt_func, match_func, out_dir)
+    for fngrprnt_func, match_func in product(_get_fngrprnt_funcs(),
+                                             _get_match_funcs()):
+        analyse(df, fngrprnt_func, match_func, out_dir)
 
 
 if __name__ == '__main__':
