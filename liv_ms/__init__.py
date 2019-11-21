@@ -9,6 +9,7 @@ All rights reserved.
 # pylint: disable=too-many-arguments
 # pylint: disable=wrong-import-order
 from functools import partial
+import inspect
 from itertools import zip_longest
 import os.path
 import random
@@ -24,15 +25,9 @@ import numpy as np
 import pandas as pd
 
 
-def analyse(df, max_path, mass_acc, scorer, out_dir):
+def analyse(df, fngrprnt_func, match_func, out_dir):
     '''Analyse correlation between spectra match score and chemical
     similarity.'''
-    match_func = partial(similarity.SimpleSpectraMatcher,
-                         mass_acc=mass_acc,
-                         scorer=scorer)
-
-    fingerprint = partial(Chem.RDKFingerprint, maxPath=max_path)
-
     hits = random_search(match_func, df)
     # specific_search(matcher, df, 125, 19)
 
@@ -41,7 +36,7 @@ def analyse(df, max_path, mass_acc, scorer, out_dir):
     for hit in hits:
         for h in hit[1:]:
             smiles = (hit[0]['smiles'], h['smiles'])
-            chem_sim = chem.get_similarities(smiles, fingerprint)
+            chem_sim = chem.get_similarities(smiles, fngrprnt_func)
 
             hit_results.append([hit[0]['name'], hit[0]['smiles'],
                                 h['name'], h['smiles'],
@@ -54,10 +49,10 @@ def analyse(df, max_path, mass_acc, scorer, out_dir):
                                                 'score',
                                                 'chem_sim'])
 
-    name = 'RDKFingerprint(maxPath=%s)_%s_%s' \
-        % (max_path,
-           mass_acc,
-           scorer.__name__)
+    name = '%s %s, %s %s' % (fngrprnt_func.func.__name__,
+                             fngrprnt_func.keywords,
+                             match_func.func.__name__,
+                             match_func.keywords)
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -138,9 +133,15 @@ def main(args):
     df = mona.get_spectra(args[0], num_spec=1024)
 
     for max_path in range(3, 10):
+        fngrprnt_func = partial(Chem.RDKFingerprint, maxPath=max_path)
+
         for mass_acc in [0.001, 0.003, 0.01, 0.03, 0.1]:
             for scorer in [np.max, np.average]:
-                analyse(df, max_path, mass_acc, scorer, out_dir)
+                match_func = partial(similarity.SimpleSpectraMatcher,
+                                     mass_acc=mass_acc,
+                                     scorer=scorer)
+
+                analyse(df, fngrprnt_func, match_func, out_dir)
 
 
 if __name__ == '__main__':
