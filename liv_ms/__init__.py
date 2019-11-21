@@ -18,7 +18,7 @@ import sys
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from liv_ms import chem, plot, searcher, similarity, spectra
+from liv_ms import chem, plot, searcher, similarity, spectra, utils
 from liv_ms.spectra import mona
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,10 +49,8 @@ def analyse(df, fngrprnt_func, match_func, out_dir):
                                                 'score',
                                                 'chem_sim'])
 
-    name = '%s %s, %s %s' % (fngrprnt_func.func.__name__,
-                             fngrprnt_func.keywords,
-                             match_func.func.__name__,
-                             match_func.keywords)
+    name = '%s, %s' % (utils.to_str(fngrprnt_func),
+                       utils.to_str(match_func))
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
