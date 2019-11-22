@@ -24,13 +24,11 @@ def _clean_rt(df):
     df.loc[:, 'retention time'] = res
     df.loc[:, 'retention time'] = df['retention time'].astype('float32')
 
-    return df
+    return df.dropna(subset=['retention time'])
 
 
 def _clean_rt_row(val):
     '''Clean single retention time value.'''
-    val_orig = val
-
     try:
         val = val.replace('N/A', 'NaN')
         val = val.replace('min', '')
@@ -46,8 +44,12 @@ def _clean_rt_row(val):
     try:
         return float(val)
     except ValueError:
-        print(val_orig)
         return float('NaN')
+
+
+def _get_stats(df):
+    '''Get retention time statistics.'''
+    return df.groupby('name').agg({'retention time': ['mean', 'std']})
 
 
 def main(args):
@@ -56,10 +58,16 @@ def main(args):
     # Get spectra:
     df = mona.get_spectra(args[0])
 
+    # Clean data
     df = _clean_ms_level(df)
     df = _clean_rt(df)
 
+    # Get stats:
+    stats_df = _get_stats(df)
+
+    # Save data:
     df.to_csv('rt.csv')
+    stats_df.to_csv('rt_stats.csv')
 
 
 if __name__ == '__main__':
