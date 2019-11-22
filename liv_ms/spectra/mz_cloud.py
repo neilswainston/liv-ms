@@ -17,37 +17,74 @@ _DOMAIN = 'https://www.mzcloud.org'
 
 
 def search(filename):
+    '''Search filename.'''
+    if filename.endswith('.txt'):
+        _search_txt(filename)
+    elif filename.endswith('.xlsx'):
+        _search_xl(filename)
+
+
+def _search_txt(filename):
     '''Search function.'''
     df = pd.read_csv(filename, header=None)
-    df.columns = ['query_name']
+    df.columns = ['Name']
 
     # Search query_name:
     df = df.apply(_search_query, axis=1)
 
     # Write csv file:
-    df[['query_name', 'id', 'name', 'link', 'synonyms']].to_csv(
+    df[['Name', 'id', 'mzcloud_name', 'link', 'synonyms']].to_csv(
         filename + '.csv')
 
 
-def _search_query(row, max_page_num=512):
+def _search_xl(filename):
+    '''Search function.'''
+    xl = pd.ExcelFile(filename)
+
+    for sheet_name in xl.sheet_names:
+        df = pd.read_excel(xl, sheet_name)
+
+        # Search query_name:
+        df = df.apply(_search_query, axis=1)
+
+        # Write csv file:
+        df.to_csv(sheet_name + '.csv')
+
+
+def _search_df():
+    '''Search DataFrame.'''
+
+
+def _search_query(row, max_page_num=512, max_attempts=128):
     '''Search mzCloud for name.'''
+    if pd.isna(row['Name']):
+        return row
 
-    # Search and scrape:
-    search_url = '%s/compound/Search?Query=%s&page=%i'
+    err = None
 
-    for page_num in range(1, max_page_num):
-        page = requests.get(search_url %
-                            (_DOMAIN, row['query_name'], page_num))
+    for _ in range(max_attempts):
+        # Search and scrape:
+        search_url = '%s/compound/Search?Query=%s&page=%i'
 
-        has_results, updated_row = _search_page(row, page)
+        for page_num in range(1, max_page_num):
+            try:
+                page = requests.get(search_url %
+                                    (_DOMAIN, row['Name'], page_num),
+                                    timeout=5)
+            except requests.exceptions.ReadTimeout as err:
+                continue
 
-        if not has_results:
-            break
+            has_results, updated_row = _search_page(row, page)
 
-        if 'id' in updated_row:
-            return updated_row
+            if not has_results:
+                break
 
-    return row
+            if 'id' in updated_row:
+                return updated_row
+
+        return row
+
+    raise err
 
 
 def _search_page(row, page):
@@ -68,17 +105,19 @@ def _search_page(row, page):
         # Get synonyms:
         p = result.find('p', {'class': 'subtle-color'})
 
-        synonyms = sorted(list(set(_get_span_text(span)
-                                   for span in p.find_all('span'))))
+        if p:
+            synonyms = sorted(list(set(_get_span_text(span)
+                                       for span in p.find_all('span'))))
 
-        if row['query_name'].lower() == name.lower() or \
-                row['query_name'].lower() in map(lambda x: x.lower(),
-                                                 synonyms):
-            row['name'] = name
-            row['id'] = href.split('/')[-1]
-            row['link'] = _DOMAIN + href
-            row['synonyms'] = synonyms
-            break
+            if row['Name'].lower() == name.lower() or \
+                    (row['Name'].lower() in map(lambda x: x.lower(),
+                                                synonyms)):
+                row['mzcloud_name'] = name
+                row['id'] = href.split('/')[-1]
+                row['link'] = _DOMAIN + href
+                row['synonyms'] = synonyms
+                print(row)
+                break
 
     return True, row
 
@@ -88,7 +127,7 @@ def _get_span_text(span):
     for child_span in span.find_all('span'):
         return _get_span_text(child_span)
 
-    return span.text.replace(';  ', '') if span.text else None
+    return span.text.replace(';  ', '').strip() if span.text else None
 
 
 def main(args):
