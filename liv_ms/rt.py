@@ -10,11 +10,13 @@ All rights reserved.
 from functools import partial
 import sys
 
-from keras.layers.core import Dense
+from keras.constraints import maxnorm
+from keras.layers.core import Dense, Dropout
 from keras.models import Sequential
 from keras.optimizers import Adam
 from rdkit import Chem
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 from liv_ms.chem import encode
 from liv_ms.plot import plot_loss
@@ -96,17 +98,30 @@ def _encode(df, fngrprnt_func):
 def _create_model(input_dim):
     '''Create model.'''
     model = Sequential()
-    model.add(Dense(64, input_dim=input_dim, activation='relu',
-                    kernel_initializer='he_uniform'))
-    model.add(Dense(16, activation='relu'))
-    # model.add(Dense(16, activation='relu'))
+    model.add(Dense(512, input_dim=input_dim, activation='relu',
+                    kernel_constraint=maxnorm(3)))
+    model.add(Dropout(0.2))
+    model.add(Dense(256, activation='relu',
+                    kernel_constraint=maxnorm(3)))
+    model.add(Dropout(0.2))
+    model.add(Dense(128, activation='relu',
+                    kernel_constraint=maxnorm(3)))
+    model.add(Dropout(0.2))
+    model.add(Dense(64, activation='relu',
+                    kernel_constraint=maxnorm(3)))
+    model.add(Dropout(0.2))
+    model.add(Dense(16, activation='relu',
+                    kernel_constraint=maxnorm(3)))
+    model.add(Dropout(0.2))
     model.add(Dense(1, activation='linear'))
+
     return model
 
 
 def _train_model(X, y):
     '''Train model.'''
-    X_train, X_dev, y_train, y_dev = train_test_split(X, y)
+    X_train, X_dev, y_train, y_dev = train_test_split(X, y,
+                                                      train_size=0.9)
 
     model = _create_model(X_train.shape[1])
 
@@ -114,8 +129,9 @@ def _train_model(X, y):
                   optimizer=Adam())
 
     # Fit:
-    history = model.fit(X_train, y_train, validation_data=(X_dev, y_dev),
-                        batch_size=32, epochs=256)
+    history = model.fit(X_train, y_train,
+                        validation_data=(X_dev, y_dev),
+                        epochs=256)
 
     # Evaluate:
     train_mse = model.evaluate(X_train, y_train)
@@ -136,11 +152,15 @@ def main(args):
 
     # Encode data:
     _encode(stats_df, Chem.RDKFingerprint)
+
+    # Scale data:
     X = np.array(stats_df['X'].tolist())
     y = stats_df['retention time mean'].to_numpy()
+    scaler = StandardScaler()
+    y_scaled = scaler.fit_transform(y.reshape(len(y), 1))
 
     # Train model:
-    _train_model(X, y)
+    _train_model(X, y_scaled)
 
 
 if __name__ == '__main__':
