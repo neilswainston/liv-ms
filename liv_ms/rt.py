@@ -13,13 +13,13 @@ import sys
 from keras.layers.core import Dense, Dropout
 from keras.models import Sequential
 from keras.optimizers import Adam
+from keras.utils import to_categorical
 from keras.wrappers.scikit_learn import KerasRegressor
 from rdkit import Chem
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler
-# from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 from liv_ms.chem import encode
 from liv_ms.plot import plot_loss, plot_scatter
@@ -27,8 +27,9 @@ from liv_ms.spectra import mona
 import numpy as np
 import pandas as pd
 
-
 # from keras.constraints import maxnorm
+
+
 def parse(filename, num_spec=float('inf')):
     '''Parse.'''
     # Get spectra:
@@ -82,7 +83,7 @@ def _clean_rt_row(val):
 
 def _get_stats(df):
     '''Get retention time statistics.'''
-    stats_df = df.groupby(['name', 'smiles']).agg(
+    stats_df = df.groupby(['name', 'smiles', 'column', 'flow rate']).agg(
         {'retention time': ['mean', 'std']})
 
     # Flatten multi-index columns:
@@ -93,10 +94,23 @@ def _get_stats(df):
     return stats_df.reset_index()
 
 
-def _encode(df, fngrprnt_func):
-    '''Encode chemicals.'''
+def _encode_x(df, fngrprnt_func):
+    '''Encode features.'''
     encode_fnc = partial(encode, fngrprnt_func=fngrprnt_func)
-    df['X'] = df['smiles'].apply(encode_fnc)
+
+    # Encode smiles;
+    smiles = np.array([encode_fnc(s) for s in df['smiles']])
+
+    # One-hot encode column
+    _, column = _one_hot_encode(df['column'])
+
+    return np.concatenate([smiles, column], axis=1)
+
+
+def _one_hot_encode(values):
+    '''One-hot encode values.'''
+    label_encoder = LabelEncoder()
+    return label_encoder, to_categorical(label_encoder.fit_transform(values))
 
 
 def _create_train_model(X, y_scaled):
@@ -183,11 +197,9 @@ def main(args):
     stats_df = stats_df[stats_df['retention time mean'] < 12.0]
 
     # Encode data:
-    _encode(stats_df, Chem.RDKFingerprint)
+    X = _encode_x(stats_df, Chem.RDKFingerprint)
 
     # Scale data:
-    X = np.array(stats_df['X'].tolist())
-
     y = stats_df['retention time mean'].to_numpy()
     y = y.reshape(len(y), 1)
 

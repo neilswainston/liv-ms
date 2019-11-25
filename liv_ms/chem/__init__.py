@@ -11,12 +11,13 @@ import sys
 from rdkit import Chem, DataStructs
 
 from liv_ms import similarity
+import numpy as np
 
 
 def encode(smiles, fngrprnt_func):
     '''Encode SMILES.'''
     mol = Chem.MolFromSmiles(smiles)
-    return list(fngrprnt_func(mol))
+    return np.array(fngrprnt_func(mol))
 
 
 def get_similarities(smiles, fngrprnt_func):
