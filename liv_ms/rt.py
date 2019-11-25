@@ -10,13 +10,13 @@ All rights reserved.
 from functools import partial
 import sys
 
-from keras.constraints import maxnorm
+# from keras.constraints import maxnorm
 from keras.layers.core import Dense, Dropout
 from keras.models import Sequential
 from keras.optimizers import Adam
 from rdkit import Chem
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from liv_ms.chem import encode
 from liv_ms.plot import plot_loss
@@ -98,20 +98,10 @@ def _encode(df, fngrprnt_func):
 def _create_model(input_dim):
     '''Create model.'''
     model = Sequential()
-    model.add(Dense(512, input_dim=input_dim, activation='relu',
-                    kernel_constraint=maxnorm(3)))
+    model.add(Dropout(0.2, input_shape=(input_dim,)))
+    model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(256, activation='relu',
-                    kernel_constraint=maxnorm(3)))
-    model.add(Dropout(0.2))
-    model.add(Dense(128, activation='relu',
-                    kernel_constraint=maxnorm(3)))
-    model.add(Dropout(0.2))
-    model.add(Dense(64, activation='relu',
-                    kernel_constraint=maxnorm(3)))
-    model.add(Dropout(0.2))
-    model.add(Dense(16, activation='relu',
-                    kernel_constraint=maxnorm(3)))
+    model.add(Dense(16, activation='relu'))
     model.add(Dropout(0.2))
     model.add(Dense(1, activation='linear'))
 
@@ -150,14 +140,19 @@ def main(args):
     # stats_df.to_csv('rt_stats.csv')
     stats_df = pd.read_csv('rt_stats.csv')
 
+    # Filter data:
+    stats_df = stats_df[stats_df['retention time mean'] < 12.0]
+
     # Encode data:
     _encode(stats_df, Chem.RDKFingerprint)
 
     # Scale data:
     X = np.array(stats_df['X'].tolist())
+
     y = stats_df['retention time mean'].to_numpy()
-    scaler = StandardScaler()
-    y_scaled = scaler.fit_transform(y.reshape(len(y), 1))
+    y = y.reshape(len(y), 1)
+    y_scaler = MinMaxScaler()
+    y_scaled = y_scaler.fit_transform(y)
 
     # Train model:
     _train_model(X, y_scaled)
