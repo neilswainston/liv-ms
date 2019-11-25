@@ -61,6 +61,19 @@ def plot_spectrum(query, hits, out_dir='out'):
     plt.savefig(os.path.join(out_dir, query['name'] + '.png'), dpi=800)
 
 
+def plot_loss(history, out_dir='out'):
+    '''Plot training loss.'''
+    plt.title('Loss / Mean Squared Error')
+    plt.plot(history.history['loss'], label='train')
+    plt.plot(history.history['val_loss'], label='dev')
+    plt.legend()
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    plt.savefig(os.path.join(out_dir, 'history.png'), dpi=800)
+
+
 def plot_scatter(X, Y, name, xlabel, ylabel, out_dir='out'):
     '''Scatter plot.'''
     plt.clf()

@@ -12,12 +12,17 @@ from rdkit import Chem, DataStructs
 from liv_ms import similarity
 
 
-def get_similarities(smiles, fingerprint):
+def encode(smiles, fngrprnt_func):
+    '''Encode SMILES.'''
+    mol = Chem.MolFromSmiles(smiles)
+    return list(fngrprnt_func(mol))
+
+
+def get_similarities(smiles, fngrprnt_func):
     '''Get similarities between chemicals represented by SMILES.'''
     sims = {}
 
-    mols = [Chem.MolFromSmiles(sml) for sml in smiles]
-    fps = [fingerprint(mol) for mol in mols]
+    fps = [encode(sml, fngrprnt_func) for sml in smiles]
 
     for idx1, fp1 in enumerate(fps):
         for idx2 in range(idx1, len(fps)):
