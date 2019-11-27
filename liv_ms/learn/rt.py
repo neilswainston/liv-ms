@@ -29,23 +29,16 @@ def get_data(filename, regenerate_stats):
     return stats_df[stats_df['retention time mean'] < 12.0]
 
 
-def encode_data(stats_df, fngrprnt_func):
+def _encode_y(stats_df):
     '''Encode data.'''
-    X = _encode_x(stats_df, fngrprnt_func)
 
     # Scale data:
     y = stats_df['retention time mean'].to_numpy()
-    y = y.reshape(len(y), 1)
-
-    return X, y
+    return y.reshape(len(y), 1)
 
 
-def _encode_x(df, fngrprnt_func):
-    '''Encode features.'''
-
-    # Encode smiles;
-    encode_fnc = partial(encode, fngrprnt_func=fngrprnt_func)
-    smiles = np.array([encode_fnc(s) for s in df['smiles']])
+def _encode_chromatography(df):
+    '''Encode chromatography.'''
 
     # One-hot encode column:
     _, column = one_hot_encode(df['column'])
@@ -54,7 +47,13 @@ def _encode_x(df, fngrprnt_func):
     flow_rate_vals = np.array([np.array(vals)
                                for vals in df['flow rate values']])
 
-    return np.concatenate([smiles, column, flow_rate_vals], axis=1)
+    return np.concatenate([column, flow_rate_vals], axis=1)
+
+
+def _encode_chem(df, fngrprnt_func):
+    '''Encode chemistry.'''
+    encode_fnc = partial(encode, fngrprnt_func=fngrprnt_func)
+    return np.array([encode_fnc(s) for s in df['smiles']])
 
 
 def main(args):
@@ -65,9 +64,13 @@ def main(args):
     verbose = int(args[2])
 
     stats_df = get_data(filename, regenerate_stats)
+    chro_enc = _encode_chromatography(stats_df)
 
     for fngrprnt_func in get_fngrprnt_funcs():
-        X, y = encode_data(stats_df, fngrprnt_func)
+        chem_enc = _encode_chem(stats_df, fngrprnt_func)
+        X = np.concatenate([chro_enc, chem_enc], axis=1)
+        y = _encode_y(stats_df)
+
         title = to_str(fngrprnt_func)
 
         # Perform k-fold:
