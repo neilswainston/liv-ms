@@ -123,17 +123,6 @@ def _plot_spectra(query_names, queries, hit_data, hit_specs, out_dir):
         plot.plot_spectrum(query, hit, out_dir)
 
 
-def _get_fngrprnt_funcs():
-    '''Get fingerprint functions.'''
-    fngrprnt_funcs = []
-
-    for max_path in range(3, 10):
-        fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
-                                      maxPath=max_path))
-
-    return fngrprnt_funcs
-
-
 def _get_match_funcs():
     '''Get match functions.'''
     match_funcs = []
@@ -154,7 +143,7 @@ def main(args):
     # Get spectra:
     df = mona.get_spectra(args[0], num_spec=1024)
 
-    for fngrprnt_func, match_func in product(_get_fngrprnt_funcs(),
+    for fngrprnt_func, match_func in product(chem.get_fngrprnt_funcs(),
                                              _get_match_funcs()):
         analyse(df, fngrprnt_func, match_func, out_dir)
 

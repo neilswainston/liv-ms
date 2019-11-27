@@ -10,12 +10,11 @@ All rights reserved.
 from functools import partial
 import sys
 
-from rdkit import Chem
-
-from liv_ms.chem import encode
+from liv_ms.chem import encode, get_fngrprnt_funcs
 from liv_ms.learn import fit, k_fold, one_hot_encode
-from liv_ms.plot import plot_scatter
+from liv_ms.plot import plot_loss, plot_scatter
 from liv_ms.spectra.mona.rt import get_rt_data
+from liv_ms.utils import to_str
 import numpy as np
 
 
@@ -27,10 +26,12 @@ def get_data(filename, regenerate_stats):
                            regenerate_stats=regenerate_stats)
 
     # Filter data:
-    stats_df = stats_df[stats_df['retention time mean'] < 12.0]
+    return stats_df[stats_df['retention time mean'] < 12.0]
 
-    # Encode data:
-    X = _encode_x(stats_df, Chem.RDKFingerprint)
+
+def encode_data(stats_df, fngrprnt_func):
+    '''Encode data.'''
+    X = _encode_x(stats_df, fngrprnt_func)
 
     # Scale data:
     y = stats_df['retention time mean'].to_numpy()
@@ -61,24 +62,45 @@ def main(args):
     # Get data:
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
+    verbose = int(args[2])
 
-    X, y = get_data(filename, regenerate_stats)
+    stats_df = get_data(filename, regenerate_stats)
 
-    # Perform k-fold:
-    results = k_fold(X, y)
+    for fngrprnt_func in get_fngrprnt_funcs():
+        X, y = encode_data(stats_df, fngrprnt_func)
+        title = to_str(fngrprnt_func)
 
-    print('k-fold: Train / test: %.3f (%.3f)' %
-          (results.mean(), results.std()))
+        # Perform k-fold:
+        # res = k_fold(X, y)
 
-    # Perform single fit:
-    y_dev, y_dev_pred = fit(X, y)
+        # print('k-fold: Train / test: %.3f (%.3f)' % (res.mean(), res.std()))
 
-    # Plot predictions on validation data:
-    plot_scatter(y_dev.flatten(),
-                 y_dev_pred.flatten(),
-                 'RT',
-                 'RT measured / min',
-                 'RT predicted / min')
+        # Perform k-fold fits:
+        y_devs = []
+        y_dev_preds = []
+
+        for fold_idx in range(3):
+            y_dev, y_dev_pred, history, train_mse, test_mse = \
+                fit(X, y, epochs=256, verbose=verbose)
+
+            y_devs.extend(y_dev.flatten())
+            y_dev_preds.extend(y_dev_pred.flatten())
+
+            # Plot loss during training:
+            fold_title = '%s, Fold: %i' % (title, fold_idx + 1)
+            plot_loss(history, 'Loss: %s' % fold_title)
+
+            # print('%s: Train: %.3f, Test: %.3f' %
+            #      (fold_title, train_mse, test_mse))
+
+        # Plot predictions on validation data:
+        label = plot_scatter(y_devs,
+                             y_dev_preds,
+                             'RT: %s' % title,
+                             'RT measured / min',
+                             'RT predicted / min')
+
+        print('%s: Fit: %s' % (title, label))
 
 
 if __name__ == '__main__':

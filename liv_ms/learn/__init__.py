@@ -77,12 +77,13 @@ def fit(X, y,
         dropout=0.2,
         kernel_constraint=maxnorm(3),
         bias_constraint=maxnorm(3),
-        epochs=512):
+        epochs=512,
+        verbose=1):
     '''Fit data.'''
     y_scaler = MinMaxScaler()
     y_scaled = y_scaler.fit_transform(y)
 
-    y_dev, y_dev_pred = \
+    y_dev, y_dev_pred, history, train_mse, test_mse = \
         create_train_model(X, y_scaled,
                            train_size=train_size,
                            hidden_layers=hidden_layers,
@@ -92,16 +93,19 @@ def fit(X, y,
                            dropout=dropout,
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint,
-                           epochs=epochs)
+                           epochs=epochs,
+                           verbose=verbose)
 
     return y_scaler.inverse_transform(y_dev), \
-        y_scaler.inverse_transform(y_dev_pred)
+        y_scaler.inverse_transform(y_dev_pred), \
+        history, train_mse, test_mse
 
 
 def create_train_model(X, y, train_size,
                        hidden_layers, loss, optimizer_func, batch_size,
                        dropout, kernel_constraint, bias_constraint,
-                       epochs):
+                       epochs,
+                       verbose):
     '''Create and train model.'''
     # Create model:
     model = create_model(X.shape[1],
@@ -119,7 +123,8 @@ def create_train_model(X, y, train_size,
 
     # Train model:
     return train_model(model, X_train, X_dev, y_train, y_dev,
-                       batch_size=batch_size, epochs=epochs)
+                       batch_size=batch_size, epochs=epochs,
+                       verbose=verbose)
 
 
 def create_model(input_dim, output_dim, hidden_layers, loss, optimizer_func,
@@ -142,21 +147,18 @@ def create_model(input_dim, output_dim, hidden_layers, loss, optimizer_func,
 
 
 def train_model(model, X_train, X_dev, y_train, y_dev,
-                batch_size, epochs):
+                batch_size, epochs,
+                verbose):
     '''Train model.'''
     # Fit:
     history = model.fit(X_train, y_train,
                         validation_data=(X_dev, y_dev),
                         batch_size=batch_size,
-                        epochs=epochs)
+                        epochs=epochs,
+                        verbose=verbose)
 
     # Evaluate:
     train_mse = model.evaluate(X_train, y_train)
     test_mse = model.evaluate(X_dev, y_dev)
 
-    print('Train: %.3f, Test: %.3f' % (train_mse, test_mse))
-
-    # Plot loss during training:
-    plot_loss(history)
-
-    return y_dev, model.predict(X_dev)
+    return y_dev, model.predict(X_dev), history, train_mse, test_mse

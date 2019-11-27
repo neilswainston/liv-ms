@@ -61,9 +61,11 @@ def plot_spectrum(query, hits, out_dir='out'):
     plt.savefig(os.path.join(out_dir, query['name'] + '.png'), dpi=800)
 
 
-def plot_loss(history, out_dir='out'):
+def plot_loss(history, title, out_dir='out'):
     '''Plot training loss.'''
-    plt.title('Loss / Mean Squared Error')
+    plt.clf()
+
+    plt.title(title)
     plt.plot(history.history['loss'], label='train')
     plt.plot(history.history['val_loss'], label='dev')
     plt.legend()
@@ -71,10 +73,10 @@ def plot_loss(history, out_dir='out'):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    plt.savefig(os.path.join(out_dir, 'history.png'), dpi=800)
+    plt.savefig(os.path.join(out_dir, '%s.png' % title), dpi=800)
 
 
-def plot_scatter(x, y, name, xlabel, ylabel, out_dir='out'):
+def plot_scatter(x, y, title, xlabel, ylabel, out_dir='out'):
     '''Scatter plot.'''
     plt.clf()
 
@@ -88,22 +90,22 @@ def plot_scatter(x, y, name, xlabel, ylabel, out_dir='out'):
     intercept, coeff, score = _best_fit(x, y)
     label = 'y = %.2f + %.2fx, R2 = %.2f' % (intercept, coeff, score)
 
-    print(name, label)
-
     plt.plot(x, [intercept + coeff * xi for xi in x],
              label=label,
              linewidth=0.5)
 
     plt.legend()
 
-    plt.title(name)
+    plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    plt.savefig(os.path.join(out_dir, name + '.png'), dpi=800)
+    plt.savefig(os.path.join(out_dir, title + '.png'), dpi=800)
+
+    return label
 
 
 def _best_fit(x, y):

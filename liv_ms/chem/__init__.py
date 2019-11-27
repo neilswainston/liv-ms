@@ -7,12 +7,24 @@ All rights reserved.
 '''
 # pylint: disable=no-member
 # pylint: disable=wrong-import-order
+from functools import partial
 import sys
 
 from rdkit import Chem, DataStructs
 
 from liv_ms import similarity
 import numpy as np
+
+
+def get_fngrprnt_funcs():
+    '''Get fingerprint functions.'''
+    fngrprnt_funcs = []
+
+    for max_path in range(3, 10):
+        fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
+                                      maxPath=max_path))
+
+    return fngrprnt_funcs
 
 
 def encode(smiles, fngrprnt_func):
