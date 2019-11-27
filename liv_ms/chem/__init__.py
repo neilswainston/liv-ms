@@ -6,6 +6,7 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=no-member
+# pylint: disable=wrong-import-order
 import sys
 
 from rdkit import Chem, DataStructs

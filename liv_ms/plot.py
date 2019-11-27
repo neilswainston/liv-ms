@@ -74,17 +74,23 @@ def plot_loss(history, out_dir='out'):
     plt.savefig(os.path.join(out_dir, 'history.png'), dpi=800)
 
 
-def plot_scatter(X, Y, name, xlabel, ylabel, out_dir='out'):
+def plot_scatter(x, y, name, xlabel, ylabel, out_dir='out'):
     '''Scatter plot.'''
     plt.clf()
-    plt.scatter(X, Y, s=1)
 
-    intercept, coeff, score = _best_fit(X, Y)
+    # Set axes:
+    max_val = np.ceil(max(max(x), max(y)))
+    axes = plt.gca()
+    axes.set_xlim([0, max_val])
+    axes.set_ylim([0, max_val])
+    plt.scatter(x, y, s=1)
+
+    intercept, coeff, score = _best_fit(x, y)
     label = 'y = %.2f + %.2fx, R2 = %.2f' % (intercept, coeff, score)
 
     print(name, label)
 
-    plt.plot(X, [intercept + coeff * xi for xi in X],
+    plt.plot(x, [intercept + coeff * xi for xi in x],
              label=label,
              linewidth=0.5)
 
