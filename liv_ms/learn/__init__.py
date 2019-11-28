@@ -42,7 +42,8 @@ def k_fold(X, y,
            dropout=0.2,
            kernel_constraint=maxnorm(3),
            bias_constraint=maxnorm(3),
-           epochs=512):
+           epochs=512,
+           verbose=1):
     '''k-fold.'''
     model_func = partial(create_model,
                          input_dim=X.shape[1],
@@ -57,12 +58,9 @@ def k_fold(X, y,
     regressor = KerasRegressor(build_fn=model_func,
                                batch_size=batch_size,
                                epochs=epochs,
-                               verbose=1)
+                               verbose=verbose)
 
-    estimators = []
-    estimators.append(('scaler', MinMaxScaler()))
-    estimators.append(('regression', regressor))
-
+    estimators = [('regression', regressor)]
     pipeline = Pipeline(estimators)
     kfold = KFold(n_splits=n_splits)
     return cross_val_score(pipeline, X, y, cv=kfold)
@@ -80,33 +78,7 @@ def fit(X, y,
         epochs=512,
         verbose=1):
     '''Fit data.'''
-    y_scaler = MinMaxScaler()
-    y_scaled = y_scaler.fit_transform(y)
 
-    y_dev, y_dev_pred, history, train_mse, test_mse = \
-        create_train_model(X, y_scaled,
-                           train_size=train_size,
-                           hidden_layers=hidden_layers,
-                           loss=loss,
-                           optimizer_func=optimizer_func,
-                           batch_size=batch_size,
-                           dropout=dropout,
-                           kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint,
-                           epochs=epochs,
-                           verbose=verbose)
-
-    return y_scaler.inverse_transform(y_dev), \
-        y_scaler.inverse_transform(y_dev_pred), \
-        history, train_mse, test_mse
-
-
-def create_train_model(X, y, train_size,
-                       hidden_layers, loss, optimizer_func, batch_size,
-                       dropout, kernel_constraint, bias_constraint,
-                       epochs,
-                       verbose):
-    '''Create and train model.'''
     # Create model:
     model = create_model(X.shape[1],
                          y.shape[1],

@@ -8,12 +8,15 @@ All rights reserved.
 import inspect
 
 
-def to_str(partial_func):
-    '''Get string representation of a partial function.'''
-    keywords = dict(partial_func.keywords)
+def to_str(fnc):
+    '''Get string representation of a function or partial function.'''
+    try:
+        return fnc.__name__
+    except Exception as err:
+        keywords = dict(fnc.keywords)
 
-    for key, value in keywords.items():
-        if inspect.isfunction(value):
-            keywords[key] = value.__name__
+        for key, value in keywords.items():
+            if inspect.isfunction(value):
+                keywords[key] = value.__name__
 
-    return '%s %s' % (partial_func.func.__name__, keywords)
+        return '%s %s' % (fnc.func.__name__, keywords)

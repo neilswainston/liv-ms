@@ -6,11 +6,19 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=no-member
+# pylint: disable=no-name-in-module
 # pylint: disable=wrong-import-order
 from functools import partial
 import sys
 
 from rdkit import Chem, DataStructs
+from rdkit.Avalon.pyAvalonTools import GetAvalonFP
+from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect, GetErGFingerprint
+from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint
+from rdkit.Chem.EState.Fingerprinter import FingerprintMol
+from rdkit.Chem.rdMolDescriptors import \
+    GetHashedAtomPairFingerprintAsBitVect, \
+    GetHashedTopologicalTorsionFingerprintAsBitVect
 
 from liv_ms import similarity
 import numpy as np
@@ -19,6 +27,15 @@ import numpy as np
 def get_fngrprnt_funcs():
     '''Get fingerprint functions.'''
     fngrprnt_funcs = []
+
+    fngrprnt_funcs.append(GetHashedAtomPairFingerprintAsBitVect)
+    fngrprnt_funcs.append(GetHashedTopologicalTorsionFingerprintAsBitVect)
+    fngrprnt_funcs.append(GetAvalonFP)
+    fngrprnt_funcs.append(GetErGFingerprint)
+
+    for radius in range(2, 10):
+        fngrprnt_funcs.append(partial(GetMorganFingerprintAsBitVect,
+                                      radius=radius))
 
     for max_path in range(3, 10):
         fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
