@@ -13,6 +13,7 @@ import sys
 
 from rdkit import Chem, DataStructs
 from rdkit.Avalon.pyAvalonTools import GetAvalonFP
+from rdkit.Chem import Descriptors
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect, GetErGFingerprint
 from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint
 from rdkit.Chem.EState.Fingerprinter import FingerprintMol
@@ -26,12 +27,10 @@ import numpy as np
 
 def get_fngrprnt_funcs():
     '''Get fingerprint functions.'''
-    fngrprnt_funcs = []
-
-    fngrprnt_funcs.append(GetHashedAtomPairFingerprintAsBitVect)
-    fngrprnt_funcs.append(GetHashedTopologicalTorsionFingerprintAsBitVect)
-    fngrprnt_funcs.append(GetAvalonFP)
-    fngrprnt_funcs.append(GetErGFingerprint)
+    fngrprnt_funcs = [GetHashedAtomPairFingerprintAsBitVect,
+                      GetHashedTopologicalTorsionFingerprintAsBitVect,
+                      GetAvalonFP,
+                      GetErGFingerprint]
 
     for radius in range(2, 10):
         fngrprnt_funcs.append(partial(GetMorganFingerprintAsBitVect,
@@ -44,8 +43,14 @@ def get_fngrprnt_funcs():
     return fngrprnt_funcs
 
 
-def encode(smiles, fngrprnt_func):
-    '''Encode SMILES.'''
+def encode_desc(smiles):
+    '''Encode descriptors.'''
+    mol = Chem.MolFromSmiles(smiles)
+    return np.array([func(mol) for _, func in Descriptors.descList])
+
+
+def encode_fngrprnt(smiles, fngrprnt_func):
+    '''Encode fingerprints.'''
     mol = Chem.MolFromSmiles(smiles)
     return np.array(fngrprnt_func(mol))
 
@@ -54,7 +59,7 @@ def get_similarities(smiles, fngrprnt_func):
     '''Get similarities between chemicals represented by SMILES.'''
     sims = {}
 
-    fps = [encode(sml, fngrprnt_func) for sml in smiles]
+    fps = [encode_fngrprnt(sml, fngrprnt_func) for sml in smiles]
 
     for idx1, fp1 in enumerate(fps):
         for idx2 in range(idx1, len(fps)):

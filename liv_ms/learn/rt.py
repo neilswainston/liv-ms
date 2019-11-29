@@ -10,8 +10,10 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 from functools import partial
 import sys
+
 from sklearn.preprocessing import MinMaxScaler
-from liv_ms.chem import encode, get_fngrprnt_funcs
+
+from liv_ms.chem import encode_desc, encode_fngrprnt, get_fngrprnt_funcs
 from liv_ms.learn import fit, k_fold, one_hot_encode
 from liv_ms.plot import plot_loss, plot_scatter
 from liv_ms.spectra.mona.rt import get_rt_data
@@ -38,7 +40,7 @@ def _encode_y(stats_df):
     return y.reshape(len(y), 1)
 
 
-def _encode_chromatography(df):
+def _encode_chrom(df):
     '''Encode chromatography.'''
 
     # One-hot encode column:
@@ -51,9 +53,14 @@ def _encode_chromatography(df):
     return np.concatenate([column, flow_rate_vals], axis=1)
 
 
-def _encode_chem(df, fngrprnt_func):
-    '''Encode chemistry.'''
-    encode_fnc = partial(encode, fngrprnt_func=fngrprnt_func)
+def _encode_desc(df):
+    '''Encode descriptors.'''
+    return np.array([encode_desc(s) for s in df['smiles']])
+
+
+def _encode_fngrprnt(df, fngrprnt_func):
+    '''Encode fingerprint.'''
+    encode_fnc = partial(encode_fngrprnt, fngrprnt_func=fngrprnt_func)
     return np.array([encode_fnc(s) for s in df['smiles']])
 
 
@@ -105,11 +112,15 @@ def main(args):
     verbose = int(args[2])
 
     stats_df = get_data(filename, regenerate_stats)
-    chro_enc = _encode_chromatography(stats_df)
+    enc = np.concatenate(
+        [_encode_chrom(stats_df), _encode_desc(stats_df)], axis=1)
+
+    enc = MinMaxScaler().fit_transform(enc)
 
     for fngrprnt_func in get_fngrprnt_funcs():
-        chem_enc = _encode_chem(stats_df, fngrprnt_func)
-        X = np.concatenate([chro_enc, chem_enc], axis=1)
+        fngrprnt_enc = _encode_fngrprnt(stats_df, fngrprnt_func)
+        X = np.concatenate([enc, fngrprnt_enc], axis=1)
+
         y = _encode_y(stats_df)
 
         y_scaler = MinMaxScaler()
@@ -118,7 +129,9 @@ def main(args):
         title = to_str(fngrprnt_func)
 
         # Perform k-fold:
-        res = k_fold(X, y_scaled, epochs=12, verbose=verbose)
+        res = k_fold(X, y_scaled, epochs=32, verbose=verbose,
+                     kernel_constraint=None,
+                     bias_constraint=None)
 
         print('%s: k-fold: Train / test: %.3f +/- %.3f' %
               (title, -res.mean(), res.std()))
