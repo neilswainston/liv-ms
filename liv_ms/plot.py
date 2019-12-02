@@ -80,6 +80,10 @@ def plot_scatter(x, y, title, xlabel, ylabel, out_dir='out'):
     '''Scatter plot.'''
     plt.clf()
 
+    # Flatten:
+    x = x.flatten()
+    y = y.flatten()
+
     # Set axes:
     max_val = np.ceil(max(max(x), max(y)))
     axes = plt.gca()
