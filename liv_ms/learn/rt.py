@@ -6,12 +6,13 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=invalid-name
+# pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
 # pylint: disable=wrong-import-order
 from functools import partial
 import sys
 
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
 from liv_ms.chem import encode_desc, encode_fngrprnt, get_fngrprnt_funcs
 from liv_ms.learn import fit, k_fold, one_hot_encode
@@ -29,15 +30,8 @@ def get_data(filename, regenerate_stats):
                            regenerate_stats=regenerate_stats)
 
     # Filter data:
-    return stats_df[stats_df['retention time mean'] < 12.0]
-
-
-def _encode_y(stats_df):
-    '''Encode data.'''
-
-    # Scale data:
-    y = stats_df['retention time mean'].to_numpy()
-    return y.reshape(len(y), 1)
+    # return stats_df[stats_df['retention time mean'] < 12.0]
+    return stats_df
 
 
 def _encode_chrom(df):
@@ -64,7 +58,7 @@ def _encode_fngrprnt(df, fngrprnt_func):
     return np.array([encode_fnc(s) for s in df['smiles']])
 
 
-def _k_fold(X, y, title, y_scaler, verbose):
+def _k_fold(X, y, title, y_scaler, k, epochs, verbose):
     '''Roll-your-own k-fold.'''
     # Perform k-fold fits:
     y_devs = []
@@ -72,9 +66,9 @@ def _k_fold(X, y, title, y_scaler, verbose):
     train_mses = []
     test_mses = []
 
-    for fold_idx in range(3):
+    for fold_idx in range(k):
         y_dev, y_dev_pred, history, train_mse, test_mse = \
-            fit(X, y, epochs=256, verbose=verbose)
+            fit(X, y, epochs=epochs, verbose=verbose)
 
         y_devs.extend(y_dev.flatten())
         y_dev_preds.extend(y_dev_pred.flatten())
@@ -89,8 +83,9 @@ def _k_fold(X, y, title, y_scaler, verbose):
         # print('%s: Train: %.3f, Test: %.3f' %
         #      (fold_title, train_mse, test_mse))
 
-    y_devs_inv = y_scaler.inverse_transform(y_devs)
-    y_dev_preds_inv = y_scaler.inverse_transform(y_dev_preds)
+    y_devs_inv = y_scaler.inverse_transform([[val] for val in y_devs])
+    y_dev_preds_inv = y_scaler.inverse_transform(
+        [[val] for val in y_dev_preds])
 
     # Plot predictions on validation data:
     label = plot_scatter(y_devs_inv,
@@ -110,33 +105,37 @@ def main(args):
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
+    scaler_func = MinMaxScaler
+    k = 8
+    epochs = 512
 
     stats_df = get_data(filename, regenerate_stats)
-    enc = np.concatenate(
+    feat_enc = np.concatenate(
         [_encode_chrom(stats_df), _encode_desc(stats_df)], axis=1)
 
-    enc = MinMaxScaler().fit_transform(enc)
+    y = stats_df['retention time mean'].to_numpy()
+    y = y.reshape(len(y), 1)
+
+    y_scaler = scaler_func()
+    y_scaled = y_scaler.fit_transform(y)
 
     for fngrprnt_func in get_fngrprnt_funcs():
         fngrprnt_enc = _encode_fngrprnt(stats_df, fngrprnt_func)
-        X = np.concatenate([enc, fngrprnt_enc], axis=1)
-
-        y = _encode_y(stats_df)
-
-        y_scaler = MinMaxScaler()
-        y_scaled = y_scaler.fit_transform(y)
+        X = np.concatenate([feat_enc, fngrprnt_enc], axis=1)
+        X = scaler_func().fit_transform(X)
 
         title = to_str(fngrprnt_func)
 
         # Perform k-fold:
-        res = k_fold(X, y_scaled, epochs=32, verbose=verbose,
+        res = k_fold(X, y_scaled, epochs=512, verbose=verbose,
                      kernel_constraint=None,
                      bias_constraint=None)
 
         print('%s: k-fold: Train / test: %.3f +/- %.3f' %
               (title, -res.mean(), res.std()))
 
-        # _k_fold(X, y, title, y_scaler, verbose)
+        _k_fold(X, y_scaled, title, y_scaler, k=k,
+                epochs=epochs, verbose=verbose)
 
 
 if __name__ == '__main__':
