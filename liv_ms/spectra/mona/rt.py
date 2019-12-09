@@ -18,8 +18,9 @@ import pandas as pd
 _FLOW_RATE_PATTERN = r'(\d+(?:\.\d+)?)\s?([um])[lL]\s?/\s?min' + \
     r'(?:\s+at\s+(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))? min)?'
 
-_FLOW_GRAD_PATTERN_1 = r'(\d+(?:\.\d+)?)/(\d+(?:\.\d+)?)' + \
-    r'(?:\s+at\s+(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))? min)?'
+_FLOW_GRAD_PATTERN_1 = r'(\d+(?:\.\d+)?)(?:/(\d+(?:\.\d+)?))?' + \
+    r'(?:/(\d+(?:\.\d+)?))?(?:\s+at\s+(\d+(?:\.\d+)?)' + \
+    r'(?:-(\d+(?:\.\d+)?))? min)?$'
 
 _FLOW_GRAD_PATTERN_2 = r'(\d+(?:\.\d+)?)(?:min)?:(\d+(?:\.\d+)?)%'
 
@@ -256,27 +257,11 @@ def _clean_gradient_row(row):
     if pd.isnull(flow_grad):
         return None
 
-    print(flow_grad)
-
     mtch = re.match(_FLOW_GRAD_PATTERN_4, flow_grad)
 
     if mtch:
         grps = mtch.groups()
 
-        '''
-        0.    98
-        1.    2
-        2.    0
-        3.    2
-        4.    98
-        5.    13
-        6.    6
-        7.    2
-        8.    98
-        9.    98
-        10.    2
-        11.    5
-        '''
         # linear from 98A/2B at 0 min:
         prop_a = float(grps[0]) / 100
         prop_b = float(grps[1]) / 100
@@ -313,15 +298,18 @@ def _clean_gradient_row(row):
 
             if mtch:
                 grps = mtch.groups()
+
+                print(flow_grad, term, grps)
+
                 prop_a = float(grps[0]) / 100
                 prop_b = float(grps[1]) / 100
 
-                terms.append([float(grps[2]), prop_a *
+                terms.append([float(grps[3]), prop_a *
                               solv_a + prop_b * solv_b])
 
-                if grps[3]:
+                if grps[4]:
                     terms.append(
-                        [float(grps[3]), prop_a * solv_a + prop_b * solv_b])
+                        [float(grps[4]), prop_a * solv_a + prop_b * solv_b])
 
             else:
                 mtch = re.match(_FLOW_GRAD_PATTERN_2, term)
@@ -355,7 +343,8 @@ def _clean_gradient_row(row):
                         terms.append([float(grps[4]),
                                       prop_a * solv_a + prop_b * solv_b])
                     else:
-                        print(term)
+                        print(flow_grad, term)
+                        return None
 
     # print(terms)
     return _get_timecourse_vals(list(zip(*terms)))
