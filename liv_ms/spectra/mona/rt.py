@@ -20,7 +20,7 @@ _FLOW_RATE_PATTERN = r'(\d+(?:\.\d+)?)\s?([um])[lL]\s?/\s?min' + \
 
 _FLOW_GRAD_PATTERN_1 = r'(\d+(?:\.\d+)?)(?:/(\d+(?:\.\d+)?))?' + \
     r'(?:/(\d+(?:\.\d+)?))?(?:\s+at\s+(\d+(?:\.\d+)?)' + \
-    r'(?:-(\d+(?:\.\d+)?))? min)?$'
+    r'(?:-(\d+(?:\.\d+)?))? min)?\.?$'
 
 _FLOW_GRAD_PATTERN_2 = r'(\d+(?:\.\d+)?)(?:min)?:(\d+(?:\.\d+)?)%'
 
@@ -54,7 +54,8 @@ def get_rt_data(filename, num_spec=float('inf'), regenerate_stats=True):
     else:
         stats_df = pd.read_csv(
             'rt_stats.csv',
-            converters={'flow rate values': ast.literal_eval})
+            converters={'flow rate values': ast.literal_eval,
+                        'gradient values': ast.literal_eval})
 
     return stats_df
 
@@ -64,6 +65,10 @@ def _save_stats(stats_df):
     # Convert flow rate values to list to enable saving:
     stats_df.loc[:, 'flow rate values'] = \
         stats_df['flow rate values'].apply(
+        lambda x: x if isinstance(x, float) else list(x))
+
+    stats_df.loc[:, 'gradient values'] = \
+        stats_df['gradient values'].apply(
         lambda x: x if isinstance(x, float) else list(x))
 
     stats_df.to_csv('rt_stats.csv', index=False)
@@ -255,7 +260,8 @@ def _clean_gradient_row(row):
     flow_grad = row['flow gradient']
 
     if pd.isnull(flow_grad):
-        return None
+        return _get_timecourse_vals(
+            [[0.0, 2**16], [float('NaN'), float('NaN')]])
 
     mtch = re.match(_FLOW_GRAD_PATTERN_4, flow_grad)
 
@@ -343,8 +349,8 @@ def _clean_gradient_row(row):
                         terms.append([float(grps[4]),
                                       prop_a * solv_a + prop_b * solv_b])
                     else:
-                        print(flow_grad, term)
-                        return None
+                        return _get_timecourse_vals(
+                            [[0.0, 2**16], [float('NaN'), float('NaN')]])
 
     # print(terms)
     return _get_timecourse_vals(list(zip(*terms)))
@@ -384,33 +390,30 @@ def _get_solv_aqua_ratio(sol):
                  'water': 0.0
                  }
 
-    try:
-        mtch = re.match(_SOL_REGEXP, sol)
+    mtch = re.match(_SOL_REGEXP, sol)
 
-        if mtch:
-            grps = list(mtch.groups())
+    if mtch:
+        grps = list(mtch.groups())
 
-            # Special case: no numerical data:
-            if not grps[0] and not grps[6]:
-                return solv_aqua.get(grps[3], 0.0)
+        # Special case: no numerical data:
+        if not grps[0] and not grps[6]:
+            return solv_aqua.get(grps[3], 0.0)
 
-            for pos in [0, 1, 2, 6, 7, 8]:
-                grps[pos] = float(grps[pos]) / 100.0 \
-                    if grps[pos] else 0.0
+        for pos in [0, 1, 2, 6, 7, 8]:
+            grps[pos] = float(grps[pos]) / 100.0 \
+                if grps[pos] else 0.0
 
-            val = grps[0] * solv_aqua.get(grps[3], 0.0) + \
-                grps[1] * solv_aqua.get(grps[4], 0.0) + \
-                grps[2] * solv_aqua.get(grps[5], 0.0) + \
-                grps[6] * solv_aqua.get(grps[3], 0.0) + \
-                grps[7] * solv_aqua.get(grps[4], 0.0) + \
-                grps[8] * solv_aqua.get(grps[5], 0.0)
+        val = grps[0] * solv_aqua.get(grps[3], 0.0) + \
+            grps[1] * solv_aqua.get(grps[4], 0.0) + \
+            grps[2] * solv_aqua.get(grps[5], 0.0) + \
+            grps[6] * solv_aqua.get(grps[3], 0.0) + \
+            grps[7] * solv_aqua.get(grps[4], 0.0) + \
+            grps[8] * solv_aqua.get(grps[5], 0.0)
 
-            return val
-    except TypeError:
-        print(sol)
+        return val
 
-    print(sol, 0.5)
-    return 0.5
+    # Assume aqueous:
+    return 0.0
 
 
 def _get_stats(df):
@@ -420,8 +423,13 @@ def _get_stats(df):
     df.loc[:, 'flow rate values'] = df['flow rate values'].apply(
         lambda x: x if isinstance(x, float) else tuple(x))
 
+    df.loc[:, 'gradient values'] = df['gradient values'].apply(
+        lambda x: x if isinstance(x, float) else tuple(x))
+
+    df.to_csv('out.csv')
+
     stats_df = df.groupby(['name', 'smiles', 'column',
-                           'flow rate values']).agg(
+                           'flow rate values', 'gradient values']).agg(
         {'retention time': ['mean', 'std']})
 
     # Flatten multi-index columns:
@@ -432,6 +440,6 @@ def _get_stats(df):
     return stats_df.reset_index()
 
 
-df = pd.read_csv('rt.csv', low_memory=False)
+# df = pd.read_csv('rt.csv', low_memory=False)
 # _clean_flow_rate(df)
-_clean_gradient(df)
+# _clean_gradient(df)

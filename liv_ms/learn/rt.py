@@ -44,7 +44,11 @@ def _encode_chrom(df):
     flow_rate_vals = np.array([np.array(vals)
                                for vals in df['flow rate values']])
 
-    return np.concatenate([column, flow_rate_vals], axis=1)
+    # Update gradient:
+    gradient_vals = np.array([np.array(vals)
+                              for vals in df['gradient values']])
+
+    return np.concatenate([column, flow_rate_vals, gradient_vals], axis=1)
 
 
 def _encode_desc(df):
@@ -107,7 +111,7 @@ def main(args):
     verbose = int(args[2])
     scaler_func = MinMaxScaler
     k = 8
-    epochs = 512
+    epochs = 128
 
     stats_df = get_data(filename, regenerate_stats)
     feat_enc = np.concatenate(
@@ -127,12 +131,12 @@ def main(args):
         title = to_str(fngrprnt_func)
 
         # Perform k-fold:
-        res = k_fold(X, y_scaled, epochs=512, verbose=verbose,
-                     kernel_constraint=None,
-                     bias_constraint=None)
+        # res = k_fold(X, y_scaled, epochs=512, verbose=verbose,
+        #             kernel_constraint=None,
+        #             bias_constraint=None)
 
-        print('%s: k-fold: Train / test: %.3f +/- %.3f' %
-              (title, -res.mean(), res.std()))
+        # print('%s: k-fold: Train / test: %.3f +/- %.3f' %
+        #      (title, -res.mean(), res.std()))
 
         _k_fold(X, y_scaled, title, y_scaler, k=k,
                 epochs=epochs, verbose=verbose)
