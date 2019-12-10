@@ -33,6 +33,11 @@ _FLOW_GRAD_PATTERN_4 = r'linear from (\d+(?:\.\d+)?)\w\/(\d+(?:\.\d+)?)\w' + \
     r' at (\d+(?:\.\d+)?)\w\/(\d+(?:\.\d+)?)\w, reequilibration' + \
     r' (\d+(?:\.\d+)?)\w\/(\d+(?:\.\d+)?)\w \((\d+(?:\.\d+)?) min\))?'
 
+_SOL_REGEXP = r'(?:(\d+(?:\.\d+)?)' + \
+    r'\:?(\d+(?:\.\d+)?)?\:?(\d+(?:\.\d+)?)?)?' + \
+    r' ?([a-z\s]+)(?:\:([a-z\s]+))?(?:\:([a-z\s]+))?' + \
+    r' ?(?:(\d+(?:\.\d+)?)\:?(\d+(?:\.\d+)?)?\:?(\d+(?:\.\d+)?)?)?'
+
 
 def get_rt_data(filename, num_spec=float('inf'), regenerate_stats=True):
     '''Get RT data.'''
@@ -373,11 +378,6 @@ def _get_solvents(row):
 
 def _get_solv_aqua_ratio(sol):
     '''Get solvent aqueous ratio.'''
-    _SOL_REGEXP = r'(?:(\d+(?:\.\d+)?)' + \
-        r'\:?(\d+(?:\.\d+)?)?\:?(\d+(?:\.\d+)?)?)?' + \
-        r' ?([a-z\s]+)(?:\:([a-z\s]+))?(?:\:([a-z\s]+))?' + \
-        r' ?(?:(\d+(?:\.\d+)?)\:?(\d+(?:\.\d+)?)?\:?(\d+(?:\.\d+)?)?)?'
-
     if not sol:
         # Assume aqueous:
         return 0.0
@@ -438,8 +438,3 @@ def _get_stats(df):
 
     # Reset multi-index index:
     return stats_df.reset_index()
-
-
-# df = pd.read_csv('rt.csv', low_memory=False)
-# _clean_flow_rate(df)
-# _clean_gradient(df)
