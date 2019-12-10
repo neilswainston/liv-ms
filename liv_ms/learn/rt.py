@@ -12,6 +12,8 @@ All rights reserved.
 from functools import partial
 import sys
 
+from sklearn import svm
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
@@ -108,8 +110,7 @@ def main(args):
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
     scaler_func = MinMaxScaler
-    k = 16
-    epochs = 32
+    k = 1
 
     stats_df = get_data(filename, regenerate_stats)
     feat_enc = np.concatenate(
@@ -120,28 +121,36 @@ def main(args):
 
     y_scaler = scaler_func()
     y_scaled = y_scaler.fit_transform(y)
+    y_scaled = y_scaled.ravel()
 
     for fngrprnt_func in get_fngrprnt_funcs():
         fngrprnt_enc = _encode_fngrprnt(stats_df, fngrprnt_func)
         X = np.concatenate([feat_enc, fngrprnt_enc], axis=1)
         X = scaler_func().fit_transform(X)
 
-        title = to_str(fngrprnt_func)
-
         # Perform k-fold:
-        estimator = nn.get_regressor(X.shape[1],
-                                     y_scaled.shape[1],
-                                     kernel_constraint=None,
-                                     bias_constraint=None,
-                                     epochs=epochs,
-                                     verbose=verbose)
+        for estimator in [RandomForestRegressor(n_estimators=10),
+                          svm.SVR(kernel='linear', C=1, gamma='auto'),
+                          svm.SVR(kernel='poly', degree=8, gamma='auto'),
+                          svm.SVR(kernel='rbf', gamma='auto'),
+                          svm.SVR(kernel='sigmoid', gamma='auto'),
+                          nn.get_regressor(X.shape[1],
+                                           1,
+                                           kernel_constraint=None,
+                                           bias_constraint=None,
+                                           epochs=32,
+                                           verbose=verbose)]:
 
-        res = cross_val_score(estimator, X, y_scaled, cv=KFold(n_splits=16))
+            title = '%s_%s' % (type(estimator).__name__,
+                               to_str(fngrprnt_func))
 
-        print('%s: k-fold: Train / test: %.3f +/- %.3f' %
-              (title, -res.mean(), res.std()))
+            res = cross_val_score(estimator, X, y_scaled,
+                                  cv=KFold(n_splits=16))
 
-        _k_fold(X, y_scaled, estimator, title, y_scaler, k, verbose)
+            print('%s: k-fold: Train / test: %.3f +/- %.3f' %
+                  (title, np.abs(res.mean()), res.std()))
+
+            _k_fold(X, y_scaled, estimator, title, y_scaler, k, verbose)
 
 
 if __name__ == '__main__':

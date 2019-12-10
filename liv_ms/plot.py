@@ -63,17 +63,23 @@ def plot_spectrum(query, hits, out_dir='out'):
 
 def plot_loss(history, title, out_dir='out'):
     '''Plot training loss.'''
-    plt.clf()
+    try:
+        plt.clf()
 
-    plt.title(title)
-    plt.plot(history.history['loss'], label='train')
-    plt.plot(history.history['val_loss'], label='dev')
-    plt.legend()
+        plt.title(title)
+        plt.plot(history.history['loss'], label='train')
 
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
+        if 'val_loss' in history.history:
+            plt.plot(history.history['val_loss'], label='dev')
 
-    plt.savefig(os.path.join(out_dir, '%s.png' % title), dpi=800)
+        plt.legend()
+
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+
+        plt.savefig(os.path.join(out_dir, '%s.png' % title), dpi=800)
+    except AttributeError:
+        pass
 
 
 def plot_scatter(x, y, title, xlabel, ylabel, out_dir='out'):

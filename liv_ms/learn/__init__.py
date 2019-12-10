@@ -40,8 +40,9 @@ def fit(X, y, estimator, train_size=0.95, verbose=1):
 
     # Fit:
     history = estimator.fit(X_train, y_train,
-                            validation_data=(X_dev, y_dev),
-                            verbose=verbose)
+                            # validation_data=(X_dev, y_dev),
+                            # verbose=verbose
+                            )
 
     # Evaluate:
     train_mse = estimator.score(X_train, y_train)
