@@ -27,18 +27,20 @@ import numpy as np
 
 def get_fngrprnt_funcs():
     '''Get fingerprint functions.'''
-    fngrprnt_funcs = [GetHashedAtomPairFingerprintAsBitVect,
-                      GetHashedTopologicalTorsionFingerprintAsBitVect,
-                      GetAvalonFP,
-                      GetErGFingerprint]
+    fngrprnt_funcs = [
+        # GetHashedAtomPairFingerprintAsBitVect,
+        GetHashedTopologicalTorsionFingerprintAsBitVect,
+        # GetAvalonFP,
+        # GetErGFingerprint
+    ]
 
-    for radius in range(2, 10):
-        fngrprnt_funcs.append(partial(GetMorganFingerprintAsBitVect,
-                                      radius=radius))
+    # for radius in range(2, 10):
+    #    fngrprnt_funcs.append(partial(GetMorganFingerprintAsBitVect,
+    #                                  radius=radius))
 
-    for max_path in range(3, 10):
-        fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
-                                      maxPath=max_path))
+    # for max_path in range(3, 10):
+    #    fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
+    #                                  maxPath=max_path))
 
     return fngrprnt_funcs
 

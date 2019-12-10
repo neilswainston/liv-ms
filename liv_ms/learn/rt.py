@@ -12,10 +12,11 @@ All rights reserved.
 from functools import partial
 import sys
 
+from sklearn.model_selection import KFold, cross_val_score
 from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
 from liv_ms.chem import encode_desc, encode_fngrprnt, get_fngrprnt_funcs
-from liv_ms.learn import fit, k_fold, one_hot_encode
+from liv_ms.learn import fit, nn, one_hot_encode
 from liv_ms.plot import plot_loss, plot_scatter
 from liv_ms.spectra.mona.rt import get_rt_data
 from liv_ms.utils import to_str
@@ -62,7 +63,7 @@ def _encode_fngrprnt(df, fngrprnt_func):
     return np.array([encode_fnc(s) for s in df['smiles']])
 
 
-def _k_fold(X, y, title, y_scaler, k, epochs, verbose):
+def _k_fold(X, y, estimator, title, y_scaler, k, verbose):
     '''Roll-your-own k-fold.'''
     # Perform k-fold fits:
     y_devs = []
@@ -72,7 +73,7 @@ def _k_fold(X, y, title, y_scaler, k, epochs, verbose):
 
     for fold_idx in range(k):
         y_dev, y_dev_pred, history, train_mse, test_mse = \
-            fit(X, y, epochs=epochs, verbose=verbose)
+            fit(X, y, estimator, train_size=0.95, verbose=verbose)
 
         y_devs.extend(y_dev.flatten())
         y_dev_preds.extend(y_dev_pred.flatten())
@@ -83,9 +84,6 @@ def _k_fold(X, y, title, y_scaler, k, epochs, verbose):
         # Plot loss during training:
         fold_title = '%s, Fold: %i' % (title, fold_idx + 1)
         plot_loss(history, 'Loss: %s' % fold_title)
-
-        # print('%s: Train: %.3f, Test: %.3f' %
-        #      (fold_title, train_mse, test_mse))
 
     y_devs_inv = y_scaler.inverse_transform([[val] for val in y_devs])
     y_dev_preds_inv = y_scaler.inverse_transform(
@@ -110,8 +108,8 @@ def main(args):
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
     scaler_func = MinMaxScaler
-    k = 8
-    epochs = 128
+    k = 16
+    epochs = 32
 
     stats_df = get_data(filename, regenerate_stats)
     feat_enc = np.concatenate(
@@ -131,15 +129,19 @@ def main(args):
         title = to_str(fngrprnt_func)
 
         # Perform k-fold:
-        # res = k_fold(X, y_scaled, epochs=512, verbose=verbose,
-        #             kernel_constraint=None,
-        #             bias_constraint=None)
+        estimator = nn.get_regressor(X.shape[1],
+                                     y_scaled.shape[1],
+                                     kernel_constraint=None,
+                                     bias_constraint=None,
+                                     epochs=epochs,
+                                     verbose=verbose)
 
-        # print('%s: k-fold: Train / test: %.3f +/- %.3f' %
-        #      (title, -res.mean(), res.std()))
+        res = cross_val_score(estimator, X, y_scaled, cv=KFold(n_splits=16))
 
-        _k_fold(X, y_scaled, title, y_scaler, k=k,
-                epochs=epochs, verbose=verbose)
+        print('%s: k-fold: Train / test: %.3f +/- %.3f' %
+              (title, -res.mean(), res.std()))
+
+        _k_fold(X, y_scaled, estimator, title, y_scaler, k, verbose)
 
 
 if __name__ == '__main__':
