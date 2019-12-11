@@ -25,16 +25,24 @@ from liv_ms.utils import to_str
 import numpy as np
 
 
-def get_data(filename, regenerate_stats):
+def get_data(filename, regenerate_stats, scaler_func=MinMaxScaler):
     '''Get data.'''
 
     # Get data:
     stats_df = get_rt_data(filename,
                            regenerate_stats=regenerate_stats)
 
-    # Filter data:
-    # return stats_df[stats_df['retention time mean'] < 12.0]
-    return stats_df
+    X = np.concatenate(
+        [_encode_chrom(stats_df), _encode_desc(stats_df)], axis=1)
+
+    y = stats_df['retention time mean'].to_numpy()
+    y = y.reshape(len(y), 1)
+
+    y_scaler = scaler_func()
+    y_scaled = y_scaler.fit_transform(y)
+    y_scaled = y_scaled.ravel()
+
+    return stats_df, X, y_scaled, y_scaler
 
 
 def _encode_chrom(df):
@@ -65,7 +73,7 @@ def _encode_fngrprnt(df, fngrprnt_func):
     return np.array([encode_fnc(s) for s in df['smiles']])
 
 
-def _k_fold(X, y, estimator, title, y_scaler, k, verbose):
+def _k_fold(X, y, estimator, title, y_scaler, k):
     '''Roll-your-own k-fold.'''
     # Perform k-fold fits:
     y_devs = []
@@ -75,7 +83,7 @@ def _k_fold(X, y, estimator, title, y_scaler, k, verbose):
 
     for fold_idx in range(k):
         y_dev, y_dev_pred, history, train_mse, test_mse = \
-            fit(X, y, estimator, train_size=0.95, verbose=verbose)
+            fit(X, y, estimator, train_size=0.95)
 
         y_devs.extend(y_dev.flatten())
         y_dev_preds.extend(y_dev_pred.flatten())
@@ -109,48 +117,39 @@ def main(args):
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
-    scaler_func = MinMaxScaler
-    k = 1
 
-    stats_df = get_data(filename, regenerate_stats)
-    feat_enc = np.concatenate(
-        [_encode_chrom(stats_df), _encode_desc(stats_df)], axis=1)
-
-    y = stats_df['retention time mean'].to_numpy()
-    y = y.reshape(len(y), 1)
-
-    y_scaler = scaler_func()
-    y_scaled = y_scaler.fit_transform(y)
-    y_scaled = y_scaled.ravel()
+    stats_df, X, y, y_scaler = get_data(filename, regenerate_stats)
 
     for fngrprnt_func in get_fngrprnt_funcs():
         fngrprnt_enc = _encode_fngrprnt(stats_df, fngrprnt_func)
-        X = np.concatenate([feat_enc, fngrprnt_enc], axis=1)
-        X = scaler_func().fit_transform(X)
+        X = np.concatenate([X, fngrprnt_enc], axis=1)
+        X = MinMaxScaler().fit_transform(X)
 
         # Perform k-fold:
-        for estimator in [RandomForestRegressor(n_estimators=10),
-                          svm.SVR(kernel='linear', C=1, gamma='auto'),
-                          svm.SVR(kernel='poly', degree=8, gamma='auto'),
-                          svm.SVR(kernel='rbf', gamma='auto'),
-                          svm.SVR(kernel='sigmoid', gamma='auto'),
-                          nn.get_regressor(X.shape[1],
-                                           1,
-                                           kernel_constraint=None,
-                                           bias_constraint=None,
-                                           epochs=32,
-                                           verbose=verbose)]:
+        for estimator in [
+            RandomForestRegressor(n_estimators=10),
+            svm.SVR(kernel='linear', C=1, gamma='auto'),
+            svm.SVR(kernel='poly', degree=8, gamma='auto'),
+            svm.SVR(kernel='rbf', gamma='auto'),
+            svm.SVR(kernel='sigmoid', gamma='auto'),
+            nn.get_regressor(X.shape[1],
+                             1,
+                             kernel_constraint=None,
+                             bias_constraint=None,
+                             epochs=32,
+                             verbose=verbose)
+        ]:
 
             title = '%s_%s' % (type(estimator).__name__,
                                to_str(fngrprnt_func))
 
-            res = cross_val_score(estimator, X, y_scaled,
+            res = cross_val_score(estimator, X, y,
                                   cv=KFold(n_splits=16))
 
             print('%s: k-fold: Train / test: %.3f +/- %.3f' %
                   (title, np.abs(res.mean()), res.std()))
 
-            _k_fold(X, y_scaled, estimator, title, y_scaler, k, verbose)
+            _k_fold(X, y, estimator, title, y_scaler, k=1)
 
 
 if __name__ == '__main__':
