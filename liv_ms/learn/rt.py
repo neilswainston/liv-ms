@@ -23,12 +23,15 @@ from liv_ms.utils import to_str
 import numpy as np
 
 
-def get_data(filename, regenerate_stats, scaler_func=MinMaxScaler):
+def get_data(filename, regenerate_stats, scaler_func=MinMaxScaler,
+             max_rt=60.0):
     '''Get data.'''
 
     # Get data:
     stats_df = get_rt_data(filename,
                            regenerate_stats=regenerate_stats)
+
+    stats_df = stats_df[stats_df['retention time mean'] < max_rt]
 
     X = np.concatenate(
         [_encode_chrom(stats_df), _encode_desc(stats_df)], axis=1)
