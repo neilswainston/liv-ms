@@ -13,7 +13,7 @@ from collections.abc import Iterable
 import os
 
 from matplotlib import collections
-from sklearn.linear_model import LinearRegression
+from scipy import stats
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -97,10 +97,11 @@ def plot_scatter(x, y, title, xlabel, ylabel, out_dir='out'):
     axes.set_ylim([0, max_val])
     plt.scatter(x, y, s=1)
 
-    intercept, coeff, score = _best_fit(x, y)
-    label = 'y = %.2f + %.2fx, R2 = %.2f' % (intercept, coeff, score)
+    slope, intercept, r_value, _, _ = stats.linregress(x, y)
 
-    plt.plot(x, [intercept + coeff * xi for xi in x],
+    label = 'y = %.2f + %.2fx, R2 = %.2f' % (intercept, slope, r_value**2)
+
+    plt.plot(x, [intercept + slope * xi for xi in x],
              label=label,
              linewidth=0.5)
 
@@ -116,13 +117,3 @@ def plot_scatter(x, y, title, xlabel, ylabel, out_dir='out'):
     plt.savefig(os.path.join(out_dir, title + '.png'), dpi=800)
 
     return label
-
-
-def _best_fit(x, y):
-    '''Get best fit.'''
-    sample_weight = 1 / (x + 1e-8)
-    x = np.array(x).reshape((-1, 1))
-    y = np.array(y)
-    model = LinearRegression().fit(x, y, sample_weight=sample_weight)
-    return model.intercept_, model.coef_, \
-        model.score(x, y, sample_weight=sample_weight)
