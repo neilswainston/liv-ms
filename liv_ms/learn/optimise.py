@@ -13,7 +13,8 @@ from rdkit.Chem.rdMolDescriptors import \
     GetHashedTopologicalTorsionFingerprintAsBitVect
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
+# from sklearn.preprocessing.data import StandardScaler
 
 from liv_ms.chem import encode_fngrprnt
 from liv_ms.learn import k_fold, rt
@@ -74,16 +75,20 @@ def main(args):
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
-    n_iter = 3
+    n_iter = 12
     cv = 8
     n_jobs = 4
-    stats_df, X, y, y_scaler = rt.get_data(filename, regenerate_stats)
+    scaler_func = StandardScaler
+    max_rt = 30.0
+    stats_df, X, y, y_scaler = rt.get_data(filename, regenerate_stats,
+                                           scaler_func=scaler_func,
+                                           max_rt=max_rt)
 
     fngrprnt_func = GetHashedTopologicalTorsionFingerprintAsBitVect
     fngrprnt_enc = np.array([encode_fngrprnt(s, fngrprnt_func)
                              for s in stats_df['smiles']])
     X = np.concatenate([X, fngrprnt_enc], axis=1)
-    X = MinMaxScaler().fit_transform(X)
+    X = scaler_func().fit_transform(X)
 
     rand_search = optimise_rf(
         X, y, n_iter=n_iter, cv=cv, verbose=verbose, n_jobs=n_jobs)
