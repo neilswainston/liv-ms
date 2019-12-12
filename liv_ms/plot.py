@@ -120,7 +120,9 @@ def plot_scatter(x, y, title, xlabel, ylabel, out_dir='out'):
 
 def _best_fit(x, y):
     '''Get best fit.'''
+    sample_weight = 1 / (x + 1e-8)
     x = np.array(x).reshape((-1, 1))
     y = np.array(y)
-    model = LinearRegression().fit(x, y)
-    return model.intercept_, model.coef_, model.score(x, y)
+    model = LinearRegression().fit(x, y, sample_weight=sample_weight)
+    return model.intercept_, model.coef_, \
+        model.score(x, y, sample_weight=sample_weight)

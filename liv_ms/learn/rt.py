@@ -9,7 +9,6 @@ All rights reserved.
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
 # pylint: disable=wrong-import-order
-from functools import partial
 import sys
 
 from sklearn import svm
@@ -18,8 +17,7 @@ from sklearn.model_selection import KFold, cross_val_score
 from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
 from liv_ms.chem import encode_desc, encode_fngrprnt, get_fngrprnt_funcs
-from liv_ms.learn import fit, nn, one_hot_encode
-from liv_ms.plot import plot_loss, plot_scatter
+from liv_ms.learn import k_fold, nn, one_hot_encode
 from liv_ms.spectra.mona.rt import get_rt_data
 from liv_ms.utils import to_str
 import numpy as np
@@ -67,89 +65,35 @@ def _encode_desc(df):
     return np.array([encode_desc(s) for s in df['smiles']])
 
 
-def _encode_fngrprnt(df, fngrprnt_func):
-    '''Encode fingerprint.'''
-    encode_fnc = partial(encode_fngrprnt, fngrprnt_func=fngrprnt_func)
-    return np.array([encode_fnc(s) for s in df['smiles']])
-
-
-def _k_fold(X, y, estimator, title, y_scaler, k):
-    '''Roll-your-own k-fold.'''
-    # Perform k-fold fits:
-    y_devs = []
-    y_dev_preds = []
-    train_mses = []
-    test_mses = []
-
-    for fold_idx in range(k):
-        y_dev, y_dev_pred, history, train_mse, test_mse = \
-            fit(X, y, estimator, train_size=0.95)
-
-        y_devs.extend(y_dev.flatten())
-        y_dev_preds.extend(y_dev_pred.flatten())
-
-        train_mses.append(train_mse)
-        test_mses.append(test_mse)
-
-        # Plot loss during training:
-        fold_title = '%s, Fold: %i' % (title, fold_idx + 1)
-        plot_loss(history, 'Loss: %s' % fold_title)
-
-    y_devs_inv = y_scaler.inverse_transform([[val] for val in y_devs])
-    y_dev_preds_inv = y_scaler.inverse_transform(
-        [[val] for val in y_dev_preds])
-
-    # Plot predictions on validation data:
-    label = plot_scatter(y_devs_inv,
-                         y_dev_preds_inv,
-                         'RT: %s' % title,
-                         'RT measured / min',
-                         'RT predicted / min')
-
-    print('%s: Fit: %s' % (title, label))
-    print('%s: k-fold: Train: %.3f,  Test: %.3f' %
-          (title, np.mean(train_mses), np.mean(test_mses)))
-
-
 def main(args):
     '''main method.'''
     # Get data:
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
+    k = 16
 
     stats_df, X, y, y_scaler = get_data(filename, regenerate_stats)
 
     for fngrprnt_func in get_fngrprnt_funcs():
-        fngrprnt_enc = _encode_fngrprnt(stats_df, fngrprnt_func)
+        fngrprnt_enc = np.array([encode_fngrprnt(s, fngrprnt_func)
+                                 for s in stats_df['smiles']])
         X = np.concatenate([X, fngrprnt_enc], axis=1)
         X = MinMaxScaler().fit_transform(X)
+        title = to_str(fngrprnt_func)
 
         # Perform k-fold:
-        for estimator in [
-            RandomForestRegressor(n_estimators=10),
-            svm.SVR(kernel='linear', C=1, gamma='auto'),
-            svm.SVR(kernel='poly', degree=8, gamma='auto'),
-            svm.SVR(kernel='rbf', gamma='auto'),
-            svm.SVR(kernel='sigmoid', gamma='auto'),
-            nn.get_regressor(X.shape[1],
-                             1,
-                             kernel_constraint=None,
-                             bias_constraint=None,
-                             epochs=32,
-                             verbose=verbose)
-        ]:
+        for n_estimators in [10, 100]:
+            estimator = RandomForestRegressor(n_estimators=n_estimators)
+            # res = cross_val_score(estimator, X, y,
+            #                      cv=KFold(n_splits=k))
 
-            title = '%s_%s' % (type(estimator).__name__,
-                               to_str(fngrprnt_func))
+            # print('%s: k-fold: Train / test: %.3f +/- %.3f' %
+            #      (title, np.abs(res.mean()), res.std()))
 
-            res = cross_val_score(estimator, X, y,
-                                  cv=KFold(n_splits=16))
-
-            print('%s: k-fold: Train / test: %.3f +/- %.3f' %
-                  (title, np.abs(res.mean()), res.std()))
-
-            _k_fold(X, y, estimator, title, y_scaler, k=1)
+            k_fold(X, y, estimator,
+                   '%s_%s' % (type(estimator).__name__, title),
+                   y_scaler, k=k)
 
 
 if __name__ == '__main__':
