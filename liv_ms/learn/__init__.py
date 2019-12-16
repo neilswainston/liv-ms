@@ -56,9 +56,13 @@ def k_fold(X, y, estimator, title, y_scaler, k, do_fit=True):
         y_devs.extend(y_dev.flatten())
         y_dev_preds.extend(estimator.predict(X_dev).flatten())
 
-    y_devs_inv = y_scaler.inverse_transform([[val] for val in y_devs])
-    y_dev_preds_inv = y_scaler.inverse_transform(
-        [[val] for val in y_dev_preds])
+    if y_scaler:
+        y_devs_inv = y_scaler.inverse_transform([[val] for val in y_devs])
+        y_dev_preds_inv = y_scaler.inverse_transform(
+            [[val] for val in y_dev_preds])
+    else:
+        y_devs_inv = np.array([[val] for val in y_devs])
+        y_dev_preds_inv = np.array([[val] for val in y_dev_preds])
 
     # Plot predictions on validation data:
     label = plot_scatter(y_devs_inv,

@@ -28,19 +28,20 @@ import numpy as np
 def get_fngrprnt_funcs():
     '''Get fingerprint functions.'''
     fngrprnt_funcs = [
-        # GetHashedAtomPairFingerprintAsBitVect,
+        None,
+        GetHashedAtomPairFingerprintAsBitVect,
         GetHashedTopologicalTorsionFingerprintAsBitVect,
         # GetAvalonFP,
         # GetErGFingerprint
     ]
 
-    # for radius in range(2, 10):
-    #    fngrprnt_funcs.append(partial(GetMorganFingerprintAsBitVect,
-    #                                  radius=radius))
+    for radius in range(2, 3):
+        fngrprnt_funcs.append(partial(GetMorganFingerprintAsBitVect,
+                                      radius=radius))
 
-    # for max_path in range(3, 10):
-    #    fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
-    #                                  maxPath=max_path))
+    for max_path in range(3, 4):
+        fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
+                                      maxPath=max_path))
 
     return fngrprnt_funcs
 
@@ -53,6 +54,9 @@ def encode_desc(smiles):
 
 def encode_fngrprnt(smiles, fngrprnt_func):
     '''Encode fingerprints.'''
+    if not fngrprnt_func:
+        return []
+
     mol = Chem.MolFromSmiles(smiles)
     return np.array(fngrprnt_func(mol))
 

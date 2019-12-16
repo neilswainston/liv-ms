@@ -24,9 +24,8 @@ import numpy as np
 
 
 def get_data(filename, regenerate_stats, scaler_func=MinMaxScaler,
-             max_rt=60.0):
+             max_rt=60.0, columns=None):
     '''Get data.'''
-
     # Get data:
     stats_df = get_rt_data(filename,
                            regenerate_stats=regenerate_stats)
@@ -34,33 +33,50 @@ def get_data(filename, regenerate_stats, scaler_func=MinMaxScaler,
     stats_df = stats_df[stats_df['retention time mean'] < max_rt]
 
     X = np.concatenate(
-        [_encode_chrom(stats_df), _encode_desc(stats_df)], axis=1)
+        [_encode_chrom(stats_df, columns=columns),
+         _encode_desc(stats_df)], axis=1)
 
     y = stats_df['retention time mean'].to_numpy()
     y = y.reshape(len(y), 1)
 
-    y_scaler = scaler_func()
-    y_scaled = y_scaler.fit_transform(y)
+    if scaler_func:
+        y_scaler = scaler_func()
+        y_scaled = y_scaler.fit_transform(y)
+    else:
+        y_scaler = None
+        y_scaled = y
+
     y_scaled = y_scaled.ravel()
 
     return stats_df, X, y_scaled, y_scaler
 
 
-def _encode_chrom(df):
+def _encode_chrom(df, columns=None):
     '''Encode chromatography.'''
+    if columns is None:
+        columns = ['column',
+                   'flow rate values',
+                   'gradient values']
+
+    arrays = []
 
     # One-hot encode column:
-    _, column = one_hot_encode(df['column'])
+    if 'column' in columns:
+        _, column = one_hot_encode(df['column'])
+        arrays.append(column)
 
     # Update flow rate:
-    flow_rate_vals = np.array([np.array(vals)
-                               for vals in df['flow rate values']])
+    if 'flow rate values' in columns:
+        arrays.append(np.array([np.array(vals)
+                                for vals in df['flow rate values']]))
 
     # Update gradient:
-    gradient_vals = np.array([np.array(vals)
-                              for vals in df['gradient values']])
+    if 'gradient values' in columns:
+        arrays.append(np.array([np.array(vals)
+                                for vals in df['gradient values']]))
 
-    return np.concatenate([column, flow_rate_vals, gradient_vals], axis=1)
+    return np.concatenate(arrays, axis=1) if arrays \
+        else np.array([[] for _ in range(len(df))])
 
 
 def _encode_desc(df):

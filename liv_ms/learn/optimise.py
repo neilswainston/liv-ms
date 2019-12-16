@@ -9,14 +9,11 @@ All rights reserved.
 # pylint: disable=too-many-arguments
 import sys
 
-from rdkit.Chem.rdMolDescriptors import \
-    GetHashedTopologicalTorsionFingerprintAsBitVect
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.preprocessing import StandardScaler
-# from sklearn.preprocessing.data import StandardScaler
+# from sklearn.preprocessing import StandardScaler
 
-from liv_ms.chem import encode_fngrprnt
+from liv_ms.chem import encode_fngrprnt, get_fngrprnt_funcs
 from liv_ms.learn import k_fold, rt
 from liv_ms.utils import to_str
 import numpy as np
@@ -75,30 +72,34 @@ def main(args):
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
-    n_iter = 12
+    n_iter = 3
     cv = 8
     n_jobs = 4
-    scaler_func = StandardScaler
+    scaler_func = None
     max_rt = 30.0
+    columns = ['column', 'gradient values']
     stats_df, X, y, y_scaler = rt.get_data(filename, regenerate_stats,
                                            scaler_func=scaler_func,
-                                           max_rt=max_rt)
+                                           max_rt=max_rt,
+                                           columns=columns)
 
-    fngrprnt_func = GetHashedTopologicalTorsionFingerprintAsBitVect
-    fngrprnt_enc = np.array([encode_fngrprnt(s, fngrprnt_func)
-                             for s in stats_df['smiles']])
-    X = np.concatenate([X, fngrprnt_enc], axis=1)
-    X = scaler_func().fit_transform(X)
+    for fngrprnt_func in get_fngrprnt_funcs():
+        fngrprnt_enc = np.array([encode_fngrprnt(s, fngrprnt_func)
+                                 for s in stats_df['smiles']])
+        X = np.concatenate([X, fngrprnt_enc], axis=1)
 
-    rand_search = optimise_rf(
-        X, y, n_iter=n_iter, cv=cv, verbose=verbose, n_jobs=n_jobs)
+        if scaler_func:
+            X = scaler_func().fit_transform(X)
 
-    _report(rand_search.cv_results_, n_top=n_iter)
+        rand_search = optimise_rf(
+            X, y, n_iter=n_iter, cv=cv, verbose=verbose, n_jobs=n_jobs)
 
-    title = '%s_%s' % (rand_search._estimator_type, to_str(fngrprnt_func))
+        _report(rand_search.cv_results_, n_top=n_iter)
 
-    k_fold(X, y, rand_search.best_estimator_, title, y_scaler, k=cv,
-           do_fit=True)
+        title = '%s_%s' % (rand_search._estimator_type, to_str(fngrprnt_func))
+
+        k_fold(X, y, rand_search.best_estimator_, title, y_scaler, k=cv,
+               do_fit=True)
 
 
 if __name__ == '__main__':

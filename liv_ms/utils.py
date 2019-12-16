@@ -10,6 +10,9 @@ import inspect
 
 def to_str(fnc):
     '''Get string representation of a function or partial function.'''
+    if not fnc:
+        return 'None'
+
     try:
         return fnc.__name__
     except Exception as err:
