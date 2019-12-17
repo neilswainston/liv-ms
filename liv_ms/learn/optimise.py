@@ -47,10 +47,10 @@ def optimise_rf(X, y, n_iter=16, cv=16, verbose=2, n_jobs=-1):
         'bootstrap': [True, False]
     }
 
-    estimator = RandomForestRegressor()
+    estimator = RandomForestRegressor(n_jobs=n_jobs)
 
     return optimise(X, y, estimator, param_distributions,
-                    n_iter=n_iter, cv=cv, verbose=verbose, n_jobs=n_jobs)
+                    n_iter=n_iter, cv=cv, verbose=verbose)
 
 
 def _report(cv_results, n_top=3):
@@ -72,7 +72,7 @@ def main(args):
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
-    n_iter = 24
+    n_iter = 8
     cv = 16
     n_jobs = 4
     scaler_func = None
