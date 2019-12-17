@@ -20,6 +20,7 @@ from rdkit.Chem.EState.Fingerprinter import FingerprintMol
 from rdkit.Chem.rdMolDescriptors import \
     GetHashedAtomPairFingerprintAsBitVect, \
     GetHashedTopologicalTorsionFingerprintAsBitVect
+from sklearn.metrics.pairwise import cosine_similarity
 
 from liv_ms import similarity
 import numpy as np
@@ -31,19 +32,20 @@ def get_fngrprnt_funcs():
         None,
         GetHashedAtomPairFingerprintAsBitVect,
         GetHashedTopologicalTorsionFingerprintAsBitVect,
-        # GetAvalonFP,
-        # GetErGFingerprint
+        GetAvalonFP,
+        GetErGFingerprint
     ]
 
-    for radius in range(2, 3):
+    for radius in range(2, 10):
         fngrprnt_funcs.append(partial(GetMorganFingerprintAsBitVect,
                                       radius=radius))
 
-    for max_path in range(3, 4):
+    for max_path in range(3, 10):
         fngrprnt_funcs.append(partial(Chem.RDKFingerprint,
                                       maxPath=max_path))
 
     return fngrprnt_funcs
+    # return [None]
 
 
 def encode_desc(smiles):
@@ -58,21 +60,26 @@ def encode_fngrprnt(smiles, fngrprnt_func):
         return []
 
     mol = Chem.MolFromSmiles(smiles)
-    return np.array(fngrprnt_func(mol))
+    return fngrprnt_func(mol)
 
 
 def get_similarities(smiles, fngrprnt_func):
     '''Get similarities between chemicals represented by SMILES.'''
-    sims = {}
+    dists = {}
 
     fps = [encode_fngrprnt(sml, fngrprnt_func) for sml in smiles]
 
     for idx1, fp1 in enumerate(fps):
         for idx2 in range(idx1, len(fps)):
-            sims[(smiles[idx1], smiles[idx2])] = \
-                1 - DataStructs.FingerprintSimilarity(fp1, fps[idx2])
+            if isinstance(fp1, DataStructs.cDataStructs.ExplicitBitVect):
+                sim = DataStructs.FingerprintSimilarity(fp1, fps[idx2])
+            else:
+                sim = cosine_similarity(fp1.reshape(1, -1),
+                                        fps[idx2].reshape(1, -1))[0][0]
 
-    return sims
+            dists[(smiles[idx1], smiles[idx2])] = 1 - sim
+
+    return dists
 
 
 def main(args):

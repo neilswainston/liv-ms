@@ -39,11 +39,11 @@ def optimise_rf(X, y, n_iter=16, cv=16, verbose=2, n_jobs=-1):
 
     # Create the random grid
     param_distributions = {
-        'n_estimators': [int(x) for x in np.linspace(100, 1000, 10)],
-        'max_features': ['auto', 'log2', 'sqrt'],
-        'max_depth': [int(x) for x in np.linspace(10, 100, 10)] + [None],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 5],
+        'n_estimators': [int(x) for x in np.linspace(200, 2000, 10)],
+        'max_features': ['auto', 'sqrt', 'log2', None],
+        'max_depth': [int(x) for x in np.linspace(50, 500, 10)] + [None],
+        'min_samples_split': [2, 5, 10, 25],
+        'min_samples_leaf': [1, 2, 5, 10, 25],
         'bootstrap': [True, False]
     }
 
@@ -72,8 +72,8 @@ def main(args):
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
     verbose = int(args[2])
-    n_iter = 3
-    cv = 8
+    n_iter = 24
+    cv = 16
     n_jobs = 4
     scaler_func = None
     max_rt = 30.0

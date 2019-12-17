@@ -60,7 +60,7 @@ def analyse(df, fngrprnt_func, match_func, out_dir):
 
     plot.plot_scatter(
         hit_df['score'], hit_df['chem_sim'],
-        name, 'score', 'chem_sim', out_dir='out')
+        name, 'spec_sim', 'chem_sim', out_dir='out')
 
 
 def random_search(match_func, lib_df, num_queries=32, num_hits=64,
@@ -145,7 +145,8 @@ def main(args):
 
     for fngrprnt_func, match_func in product(chem.get_fngrprnt_funcs(),
                                              _get_match_funcs()):
-        analyse(df, fngrprnt_func, match_func, out_dir)
+        if fngrprnt_func:
+            analyse(df, fngrprnt_func, match_func, out_dir)
 
 
 if __name__ == '__main__':

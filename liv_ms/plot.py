@@ -87,8 +87,11 @@ def plot_scatter(x, y, title, xlabel, ylabel, out_dir='out'):
     plt.clf()
 
     # Flatten:
-    x = x.flatten()
-    y = y.flatten()
+    if len(x.shape) > 1 and len(x.shape[1]) != 1:
+        x = x.flatten()
+
+    if len(y.shape) > 1 and len(y.shape[1]) != 1:
+        y = y.flatten()
 
     # Set axes:
     max_val = np.ceil(max(max(x), max(y)))
