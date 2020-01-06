@@ -6,11 +6,15 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=invalid-name
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-nested-blocks
+# pylint: disable=too-many-statements
 # pylint: disable=wrong-import-order
 import ast
 import re
 
 from liv_ms.spectra import mona
+from liv_ms.spectra.mona import column
 import numpy as np
 import pandas as pd
 
@@ -45,7 +49,10 @@ def get_rt_data(filename, num_spec=float('inf'), regenerate_stats=True):
         # Get spectra:
         df = mona.get_spectra(filename, num_spec=num_spec)
 
-        # Clean data
+        # Encode column:
+        column.encode_column(df)
+
+        # Clean data:
         df = _clean_ms_level(df)
         df = _clean_rt(df)
         df = _clean_flow_rate(df)
@@ -59,7 +66,8 @@ def get_rt_data(filename, num_spec=float('inf'), regenerate_stats=True):
     else:
         stats_df = pd.read_csv(
             'rt_stats.csv',
-            converters={'flow rate values': ast.literal_eval,
+            converters={'column values': ast.literal_eval,
+                        'flow rate values': ast.literal_eval,
                         'gradient values': ast.literal_eval})
 
     return stats_df
@@ -67,14 +75,13 @@ def get_rt_data(filename, num_spec=float('inf'), regenerate_stats=True):
 
 def _save_stats(stats_df):
     '''Save stats.'''
-    # Convert flow rate values to list to enable saving:
-    stats_df.loc[:, 'flow rate values'] = \
-        stats_df['flow rate values'].apply(
-        lambda x: x if isinstance(x, float) else list(x))
-
-    stats_df.loc[:, 'gradient values'] = \
-        stats_df['gradient values'].apply(
-        lambda x: x if isinstance(x, float) else list(x))
+    # Convert values to list to enable saving:
+    for col_name in ['column values',
+                     'flow rate values',
+                     'gradient values']:
+        stats_df.loc[:, col_name] = \
+            stats_df[col_name].apply(
+            lambda x: x if isinstance(x, float) else list(x))
 
     stats_df.to_csv('rt_stats.csv', index=False)
 
@@ -310,8 +317,6 @@ def _clean_gradient_row(row):
             if mtch:
                 grps = mtch.groups()
 
-                print(flow_grad, term, grps)
-
                 prop_a = float(grps[0]) / 100
                 prop_b = float(grps[1]) / 100
 
@@ -357,7 +362,6 @@ def _clean_gradient_row(row):
                         return _get_timecourse_vals(
                             [[0.0, 2**16], [float('NaN'), float('NaN')]])
 
-    # print(terms)
     return _get_timecourse_vals(list(zip(*terms)))
 
 
@@ -420,15 +424,15 @@ def _get_stats(df):
     '''Get retention time statistics.'''
 
     # Convert to tuples to enable hashing / grouping:
-    df.loc[:, 'flow rate values'] = df['flow rate values'].apply(
-        lambda x: x if isinstance(x, float) else tuple(x))
-
-    df.loc[:, 'gradient values'] = df['gradient values'].apply(
-        lambda x: x if isinstance(x, float) else tuple(x))
+    for col_name in ['column values',
+                     'flow rate values',
+                     'gradient values']:
+        df.loc[:, col_name] = df[col_name].apply(
+            lambda x: x if isinstance(x, float) else tuple(x))
 
     df.to_csv('out.csv')
 
-    stats_df = df.groupby(['name', 'smiles', 'column',
+    stats_df = df.groupby(['name', 'smiles', 'column values',
                            'flow rate values', 'gradient values']).agg(
         {'retention time': ['mean', 'std']})
 

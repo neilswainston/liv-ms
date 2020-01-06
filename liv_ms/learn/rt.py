@@ -11,13 +11,13 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 import sys
 
-from sklearn import svm
+# from sklearn import svm
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import KFold, cross_val_score
+# from sklearn.model_selection import KFold, cross_val_score
 from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
 from liv_ms.chem import encode_desc, encode_fngrprnt, get_fngrprnt_funcs
-from liv_ms.learn import k_fold, nn, one_hot_encode
+from liv_ms.learn import k_fold  # , nn
 from liv_ms.spectra.mona.rt import get_rt_data
 from liv_ms.utils import to_str
 import numpy as np
@@ -54,16 +54,16 @@ def get_data(filename, regenerate_stats, scaler_func=MinMaxScaler,
 def _encode_chrom(df, columns=None):
     '''Encode chromatography.'''
     if columns is None:
-        columns = ['column',
+        columns = ['column values',
                    'flow rate values',
                    'gradient values']
 
     arrays = []
 
     # One-hot encode column:
-    if 'column' in columns:
-        _, column = one_hot_encode(df['column'])
-        arrays.append(column)
+    if 'column values' in columns:
+        arrays.append(np.array([np.array(vals)
+                                for vals in df['column values']]))
 
     # Update flow rate:
     if 'flow rate values' in columns:
@@ -89,7 +89,7 @@ def main(args):
     # Get data:
     filename = args[0]
     regenerate_stats = bool(int(args[1]))
-    verbose = int(args[2])
+    # verbose = int(args[2])
     k = 16
 
     stats_df, X, y, y_scaler = get_data(filename, regenerate_stats)

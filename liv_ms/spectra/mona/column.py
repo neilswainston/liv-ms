@@ -21,12 +21,15 @@ _HYDROPHOBIC_PATTERN = r'C\d+|BEH'
 
 def encode_column(df):
     '''Encode column.'''
-    df['column_values'] = df.apply(_get_column_values, axis=1)
+    df['column values'] = df.apply(_get_column_values, axis=1)
 
 
 def _get_column_values(row):
     '''Get column values.'''
-    return _get_dims(row) + [_get_part_size(row), _get_hydrophobic(row)]
+    if pd.notna(row['column']):
+        return _get_dims(row) + [_get_part_size(row), _get_hydrophobic(row)]
+
+    return [float('NaN')] * 4
 
 
 def _get_dims(row):
