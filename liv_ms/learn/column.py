@@ -14,10 +14,13 @@ import pandas as pd
 _DIM_PATTERN = \
     r'(\d+(?:\.\d+)?)(?: )?(?:mm)?(?: )?(?:x|by)(?: )?(\d+(?:\.\d+)?) ?mm'
 
+_PART_PATTERN = r'(\d+(?:\.\d+)?)(?: )?(?:um|micron|microm)'
+
 
 def encode_column(df):
     '''Encode column.'''
     dims = df['column'].apply(_get_dims)
+    part_size = df['column'].apply(_get_part_size)
 
 
 def _get_dims(row):
@@ -28,10 +31,24 @@ def _get_dims(row):
 
     if mtch:
         dims = sorted(map(float, mtch.groups()))
-    else:
-        print(row)
+
+    print(row, dims)
 
     return dims
+
+
+def _get_part_size(row):
+    '''Get particle size.'''
+    mtch = re.search(_PART_PATTERN, row.lower())
+
+    part_size = float('NaN')
+
+    if mtch:
+        part_size = float(mtch.group(1))
+
+    print(row, part_size)
+
+    return part_size
 
 
 def main(args):
