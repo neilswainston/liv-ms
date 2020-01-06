@@ -21,7 +21,13 @@ _HYDROPHOBIC_PATTERN = r'C\d+|BEH'
 
 def encode_column(df):
     '''Encode column.'''
-    df['column values'] = df.apply(_get_column_values, axis=1)
+    col_vals = df.apply(_get_column_values, axis=1)
+
+    # Fill NaNs:
+    col_vals_df = pd.DataFrame(item for item in col_vals)
+    col_vals_df.fillna(col_vals_df.mean(), inplace=True)
+
+    df['column values'] = pd.Series(col_vals_df.values.tolist())
 
 
 def _get_column_values(row):
