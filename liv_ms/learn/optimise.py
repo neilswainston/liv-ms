@@ -77,7 +77,7 @@ def main(args):
     n_jobs = 4
     scaler_func = None
     max_rt = 30.0
-    columns = ['column', 'gradient values']
+    columns = ['column values', 'gradient values']
     stats_df, X, y, y_scaler = rt.get_data(filename, regenerate_stats,
                                            scaler_func=scaler_func,
                                            max_rt=max_rt,
