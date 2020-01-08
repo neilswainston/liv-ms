@@ -14,6 +14,7 @@ from pathlib import Path
 import unittest
 
 from liv_ms import similarity, spectra
+from liv_ms.data import mona
 import numpy as np
 
 
@@ -67,7 +68,7 @@ class TestSpectraMatcher(unittest.TestCase):
                                   'MoNA-export-LC-MS-MS_Positive_Mode.json'])
 
         # Oxolinic acid, Flumequine false positive:
-        df = spectra.mona.get_spectra(filename, 100).loc[[59, 51]]
+        df = mona.get_spectra(filename, 100).loc[[59, 51]]
         specs = spectra.get_spectra(df)
 
         scores = []

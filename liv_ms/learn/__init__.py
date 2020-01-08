@@ -21,9 +21,9 @@ from sklearn.model_selection import KFold, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
+from liv_ms.data.mona.rt import get_rt_data
 from liv_ms.learn import nn
 from liv_ms.plot import plot_loss, plot_scatter
-from liv_ms.spectra.mona.rt import get_rt_data
 import numpy as np
 
 

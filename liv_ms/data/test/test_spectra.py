@@ -9,7 +9,7 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 import unittest
 
-from liv_ms import spectra
+from liv_ms.data import spectra
 import numpy as np
 
 

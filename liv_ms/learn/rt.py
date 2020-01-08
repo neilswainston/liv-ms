@@ -11,18 +11,18 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 import sys
 
-# from sklearn import svm
 from sklearn.ensemble import RandomForestRegressor
-# from sklearn.model_selection import KFold, cross_val_score
 from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
 from liv_ms.chem import encode_desc, encode_fngrprnt, get_fngrprnt_funcs
+from liv_ms.data.mona.rt import get_rt_data
 from liv_ms.learn import k_fold  # , nn
-from liv_ms.spectra.mona.rt import get_rt_data
 from liv_ms.utils import to_str
 import numpy as np
 
 
+# from sklearn import svm
+# from sklearn.model_selection import KFold, cross_val_score
 def get_data(filename, regenerate_stats, scaler_func=MinMaxScaler,
              max_rt=60.0, columns=None):
     '''Get data.'''

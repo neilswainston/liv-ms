@@ -13,8 +13,8 @@ All rights reserved.
 import ast
 import re
 
-from liv_ms.spectra import mona
-from liv_ms.spectra.mona import column
+from liv_ms.data import mona
+from liv_ms.data.mona import column
 import numpy as np
 import pandas as pd
 

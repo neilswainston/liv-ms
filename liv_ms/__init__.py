@@ -18,8 +18,8 @@ import sys
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from liv_ms import chem, plot, searcher, similarity, spectra, utils
-from liv_ms.spectra import mona
+from liv_ms import chem, plot, searcher, similarity, data, utils
+from liv_ms.data import mona, spectra
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
