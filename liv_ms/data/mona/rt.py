@@ -10,11 +10,9 @@ All rights reserved.
 # pylint: disable=too-many-nested-blocks
 # pylint: disable=too-many-statements
 # pylint: disable=wrong-import-order
-import ast
 import re
 
 from liv_ms.data import mona
-from liv_ms.data.mona import column
 import numpy as np
 import pandas as pd
 
@@ -43,34 +41,42 @@ _SOL_REGEXP = r'(?:(\d+(?:\.\d+)?)' + \
     r' ?(?:(\d+(?:\.\d+)?)\:?(\d+(?:\.\d+)?)?\:?(\d+(?:\.\d+)?)?)?'
 
 
-def get_rt_data(filename, num_spec=float('inf'), regenerate_stats=True):
+def get_rt_data(filename, num_spec=float('inf')):
     '''Get RT data.'''
-    if regenerate_stats:
-        # Get spectra:
-        df = mona.get_spectra(filename, num_spec=num_spec)
+    # Get spectra:
+    df = mona.get_spectra(filename, num_spec=num_spec)
 
-        # Encode column:
-        column.encode_column(df)
+    # Clean data:
+    df = _clean_ms_level(df)
+    df = _clean_rt(df)
+    df = _clean_flow_rate(df)
+    df = _clean_gradient(df)
 
-        # Clean data:
-        df = _clean_ms_level(df)
-        df = _clean_rt(df)
-        df = _clean_flow_rate(df)
-        df = _clean_gradient(df)
+    return df
 
-        # Get stats:
-        stats_df = _get_stats(df)
 
-        # Save stats_df:
-        _save_stats(stats_df)
-    else:
-        stats_df = pd.read_csv(
-            'rt_stats.csv',
-            converters={'column values': ast.literal_eval,
-                        'flow rate values': ast.literal_eval,
-                        'gradient values': ast.literal_eval})
+def _get_stats(df):
+    '''Get retention time statistics.'''
 
-    return stats_df
+    # Convert to tuples to enable hashing / grouping:
+    for col_name in ['column values',
+                     'flow rate values',
+                     'gradient values']:
+        df.loc[:, col_name] = df[col_name].apply(
+            lambda x: x if isinstance(x, float) else tuple(x))
+
+    df.to_csv('out.csv')
+
+    stats_df = df.groupby(['name', 'smiles', 'column values',
+                           'flow rate values', 'gradient values']).agg(
+        {'retention time': ['mean', 'std']})
+
+    # Flatten multi-index columns:
+    stats_df.columns = [' '.join(col)
+                        for col in stats_df.columns.values]
+
+    # Reset multi-index index:
+    return stats_df.reset_index()
 
 
 def _save_stats(stats_df):
@@ -418,27 +424,3 @@ def _get_solv_aqua_ratio(sol):
 
     # Assume aqueous:
     return 0.0
-
-
-def _get_stats(df):
-    '''Get retention time statistics.'''
-
-    # Convert to tuples to enable hashing / grouping:
-    for col_name in ['column values',
-                     'flow rate values',
-                     'gradient values']:
-        df.loc[:, col_name] = df[col_name].apply(
-            lambda x: x if isinstance(x, float) else tuple(x))
-
-    df.to_csv('out.csv')
-
-    stats_df = df.groupby(['name', 'smiles', 'column values',
-                           'flow rate values', 'gradient values']).agg(
-        {'retention time': ['mean', 'std']})
-
-    # Flatten multi-index columns:
-    stats_df.columns = [' '.join(col)
-                        for col in stats_df.columns.values]
-
-    # Reset multi-index index:
-    return stats_df.reset_index()

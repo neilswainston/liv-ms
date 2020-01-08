@@ -6,19 +6,24 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=invalid-name
+# pylint: disable=not-callable
+# pylint: disable=protected-access
 # pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=wrong-import-order
 import sys
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
-# from sklearn.preprocessing import StandardScaler
 
 from liv_ms.chem import encode_fngrprnt, get_fngrprnt_funcs
+from liv_ms.data import mona
 from liv_ms.learn import k_fold, rt
 from liv_ms.utils import to_str
 import numpy as np
 
 
+# from sklearn.preprocessing import StandardScaler
 def optimise(X, y, estimator, param_distributions,
              n_iter=16, cv=16, verbose=2, n_jobs=-1):
     '''Hyperparameter optimisation.'''
@@ -70,15 +75,17 @@ def _report(cv_results, n_top=3):
 def main(args):
     '''main method.'''
     filename = args[0]
-    regenerate_stats = bool(int(args[1]))
+    regen_stats = bool(int(args[1]))
     verbose = int(args[2])
-    n_iter = 8
-    cv = 16
+    n_iter = 2
+    cv = 4
     n_jobs = 4
     scaler_func = None
     max_rt = 30.0
     columns = ['column values', 'gradient values']
-    stats_df, X, y, y_scaler = rt.get_data(filename, regenerate_stats,
+    stats_df, X, y, y_scaler = rt.get_data(filename,
+                                           module=mona,
+                                           regen_stats=regen_stats,
                                            scaler_func=scaler_func,
                                            max_rt=max_rt,
                                            columns=columns)
