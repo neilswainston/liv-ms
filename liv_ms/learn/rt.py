@@ -16,7 +16,8 @@ from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
 from liv_ms.chem import encode_desc, encode_fngrprnt, get_fngrprnt_funcs
 from liv_ms.data import mona
-from liv_ms.data.rt import get_rt_data
+# from liv_ms.data.mona.rt import get_rt_data
+from liv_ms.data.metlin.rt import get_rt_data
 from liv_ms.learn import k_fold  # , nn
 from liv_ms.utils import to_str
 import numpy as np
@@ -24,11 +25,11 @@ import numpy as np
 
 # from sklearn import svm
 # from sklearn.model_selection import KFold, cross_val_score
-def get_data(filename, module, regen_stats, scaler_func=MinMaxScaler,
+def get_data(filename, regen_stats, scaler_func=MinMaxScaler,
              max_rt=60.0, columns=None):
     '''Get data.'''
     # Get data:
-    stats_df = get_rt_data(filename, module, regen_stats=regen_stats)
+    stats_df = get_rt_data(filename)
 
     stats_df = stats_df[stats_df['retention time mean'] < max_rt]
 

@@ -10,10 +10,11 @@ All rights reserved.
 # pylint: disable=too-many-nested-blocks
 # pylint: disable=too-many-statements
 # pylint: disable=wrong-import-order
+import ast
 import re
 
-from liv_ms.data import mona
-import numpy as np
+from liv_ms.data import mona, rt
+from liv_ms.data.mona import column
 import pandas as pd
 
 
@@ -41,42 +42,34 @@ _SOL_REGEXP = r'(?:(\d+(?:\.\d+)?)' + \
     r' ?(?:(\d+(?:\.\d+)?)\:?(\d+(?:\.\d+)?)?\:?(\d+(?:\.\d+)?)?)?'
 
 
-def get_rt_data(filename, num_spec=float('inf')):
+def get_rt_data(filename, num_spec=float('inf'), regen_stats=True):
     '''Get RT data.'''
-    # Get spectra:
-    df = mona.get_spectra(filename, num_spec=num_spec)
+    if regen_stats:
+        # Get spectra:
+        df = mona.get_spectra(filename, num_spec=num_spec)
 
-    # Clean data:
-    df = _clean_ms_level(df)
-    df = _clean_rt(df)
-    df = _clean_flow_rate(df)
-    df = _clean_gradient(df)
+        # Clean data:
+        df = _clean_ms_level(df)
+        df = _clean_rt(df)
+        df = _clean_flow_rate(df)
+        df = _clean_gradient(df)
 
-    return df
+        # Encode column:
+        column.encode_column(df)
 
+        # Get stats:
+        stats_df = rt.get_stats(df)
 
-def _get_stats(df):
-    '''Get retention time statistics.'''
+        # Save stats_df:
+        _save_stats(stats_df)
+    else:
+        stats_df = pd.read_csv(
+            'mona_stats.csv',
+            converters={'column values': ast.literal_eval,
+                        'flow rate values': ast.literal_eval,
+                        'gradient values': ast.literal_eval})
 
-    # Convert to tuples to enable hashing / grouping:
-    for col_name in ['column values',
-                     'flow rate values',
-                     'gradient values']:
-        df.loc[:, col_name] = df[col_name].apply(
-            lambda x: x if isinstance(x, float) else tuple(x))
-
-    df.to_csv('out.csv')
-
-    stats_df = df.groupby(['name', 'smiles', 'column values',
-                           'flow rate values', 'gradient values']).agg(
-        {'retention time': ['mean', 'std']})
-
-    # Flatten multi-index columns:
-    stats_df.columns = [' '.join(col)
-                        for col in stats_df.columns.values]
-
-    # Reset multi-index index:
-    return stats_df.reset_index()
+    return stats_df
 
 
 def _save_stats(stats_df):
@@ -89,7 +82,7 @@ def _save_stats(stats_df):
             stats_df[col_name].apply(
             lambda x: x if isinstance(x, float) else list(x))
 
-    stats_df.to_csv('rt_stats.csv', index=False)
+    stats_df.to_csv('mona_stats.csv', index=False)
 
 
 def _clean_ms_level(df):
@@ -169,37 +162,7 @@ def _clean_flow_rate_row(val):
                 terms.extend([(0.0, float('NaN')),
                               (2**16, float('NaN'))])
 
-    return _get_timecourse_vals(list(zip(*terms)))
-
-
-def _get_timecourse_vals(terms, steps=range(60)):
-    '''Get timecourse values.'''
-    times, vals = terms
-
-    # Special case: if first val is NaN:
-    if np.isnan(vals[0]):
-        return float('NaN')
-
-    timecourse_vals = []
-
-    terms = zip(*terms)
-
-    for step in steps:
-        idx = np.searchsorted(times, step)
-
-        if idx == 0:
-            val = vals[0]
-        elif idx >= len(vals):
-            val = vals[-1]
-        else:
-            coeff = np.polyfit(times[idx - 1:idx + 1],
-                               vals[idx - 1:idx + 1], 1)
-            polynomial = np.poly1d(coeff)
-            val = polynomial(step)
-
-        timecourse_vals.append(val)
-
-    return timecourse_vals
+    return rt.get_timecourse_vals(list(zip(*terms)))
 
 
 def _clean_gradient(df):
@@ -278,7 +241,7 @@ def _clean_gradient_row(row):
     flow_grad = row['flow gradient']
 
     if pd.isnull(flow_grad):
-        return _get_timecourse_vals(
+        return rt.get_timecourse_vals(
             [[0.0, 2**16], [float('NaN'), float('NaN')]])
 
     mtch = re.match(_FLOW_GRAD_PATTERN_4, flow_grad)
@@ -365,10 +328,10 @@ def _clean_gradient_row(row):
                         terms.append([float(grps[4]),
                                       prop_a * solv_a + prop_b * solv_b])
                     else:
-                        return _get_timecourse_vals(
+                        return rt.get_timecourse_vals(
                             [[0.0, 2**16], [float('NaN'), float('NaN')]])
 
-    return _get_timecourse_vals(list(zip(*terms)))
+    return rt.get_timecourse_vals(list(zip(*terms)))
 
 
 def _get_solvents(row):

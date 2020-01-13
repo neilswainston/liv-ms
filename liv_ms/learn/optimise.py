@@ -17,7 +17,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 
 from liv_ms.chem import encode_fngrprnt, get_fngrprnt_funcs
-from liv_ms.data import mona
+#from liv_ms.data import mona, metlin
 from liv_ms.learn import k_fold, rt
 from liv_ms.utils import to_str
 import numpy as np
@@ -84,7 +84,6 @@ def main(args):
     max_rt = 30.0
     columns = ['column values', 'gradient values']
     stats_df, X, y, y_scaler = rt.get_data(filename,
-                                           module=mona,
                                            regen_stats=regen_stats,
                                            scaler_func=scaler_func,
                                            max_rt=max_rt,

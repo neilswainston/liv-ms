@@ -6,40 +6,40 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=invalid-name
-# pylint: disable=too-many-branches
-# pylint: disable=too-many-nested-blocks
-# pylint: disable=too-many-statements
-# pylint: disable=wrong-import-order
-import ast
-from liv_ms.data.mona import column
-import pandas as pd
+import numpy as np
 
 
-def get_rt_data(filename, module, num_spec=float('inf'), regen_stats=True):
-    '''Get RT data.'''
-    if regen_stats:
-        # Get spectra:
-        df = module.get_rt_data(filename, num_spec)
+def get_timecourse_vals(terms, steps=range(60)):
+    '''Get timecourse values.'''
+    times, vals = terms
 
-        # Encode column:
-        column.encode_column(df)
+    # Special case: if first val is NaN:
+    if np.isnan(vals[0]):
+        return float('NaN')
 
-        # Get stats:
-        stats_df = _get_stats(df)
+    timecourse_vals = []
 
-        # Save stats_df:
-        _save_stats(stats_df)
-    else:
-        stats_df = pd.read_csv(
-            'rt_stats.csv',
-            converters={'column values': ast.literal_eval,
-                        'flow rate values': ast.literal_eval,
-                        'gradient values': ast.literal_eval})
+    terms = zip(*terms)
 
-    return stats_df
+    for step in steps:
+        idx = np.searchsorted(times, step)
+
+        if idx == 0:
+            val = vals[0]
+        elif idx >= len(vals):
+            val = vals[-1]
+        else:
+            coeff = np.polyfit(times[idx - 1:idx + 1],
+                               vals[idx - 1:idx + 1], 1)
+            polynomial = np.poly1d(coeff)
+            val = polynomial(step)
+
+        timecourse_vals.append(val)
+
+    return timecourse_vals
 
 
-def _get_stats(df):
+def get_stats(df):
     '''Get retention time statistics.'''
 
     # Convert to tuples to enable hashing / grouping:
@@ -49,9 +49,7 @@ def _get_stats(df):
         df.loc[:, col_name] = df[col_name].apply(
             lambda x: x if isinstance(x, float) else tuple(x))
 
-    df.to_csv('out.csv')
-
-    stats_df = df.groupby(['name', 'smiles', 'column values',
+    stats_df = df.groupby(['smiles', 'column values',
                            'flow rate values', 'gradient values']).agg(
         {'retention time': ['mean', 'std']})
 
@@ -61,16 +59,3 @@ def _get_stats(df):
 
     # Reset multi-index index:
     return stats_df.reset_index()
-
-
-def _save_stats(stats_df):
-    '''Save stats.'''
-    # Convert values to list to enable saving:
-    for col_name in ['column values',
-                     'flow rate values',
-                     'gradient values']:
-        stats_df.loc[:, col_name] = \
-            stats_df[col_name].apply(
-            lambda x: x if isinstance(x, float) else list(x))
-
-    stats_df.to_csv('rt_stats.csv', index=False)
