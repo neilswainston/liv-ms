@@ -49,13 +49,19 @@ def get_stats(df):
         df.loc[:, col_name] = df[col_name].apply(
             lambda x: x if isinstance(x, float) else tuple(x))
 
-    stats_df = df.groupby(['smiles', 'column values',
-                           'flow rate values', 'gradient values']).agg(
-        {'retention time': ['mean', 'std']})
+    if 'retention time' in df.columns:
+        stats_df = df.groupby(['smiles', 'column values',
+                               'flow rate values', 'gradient values'])
 
-    # Flatten multi-index columns:
-    stats_df.columns = [' '.join(col)
-                        for col in stats_df.columns.values]
+        stats_df = stats_df.agg({'retention time': ['mean', 'std']})
 
-    # Reset multi-index index:
-    return stats_df.reset_index()
+        # Flatten multi-index columns:
+        stats_df.columns = [' '.join(col)
+                            for col in stats_df.columns.values]
+
+        # Reset multi-index index:
+        stats_df.reset_index(inplace=True)
+    else:
+        stats_df = df
+
+    return stats_df
