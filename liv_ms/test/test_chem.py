@@ -12,7 +12,6 @@ import unittest
 from rdkit import Chem
 
 from liv_ms import chem
-import numpy as np
 
 
 class TestChem(unittest.TestCase):
