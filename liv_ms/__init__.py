@@ -5,6 +5,7 @@ All rights reserved.
 
 @author: neilswainston
 '''
+# pylint: disable=broad-except
 # pylint: disable=invalid-name
 # pylint: disable=too-many-arguments
 # pylint: disable=wrong-import-order
@@ -18,7 +19,7 @@ import sys
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from liv_ms import chem, plot, searcher, similarity, data, utils
+from liv_ms import chem, plot, searcher, similarity, data
 from liv_ms.data import mona, spectra
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,8 +50,7 @@ def analyse(df, fngrprnt_func, match_func, out_dir):
                                                 'score',
                                                 'chem_sim'])
 
-    name = '%s, %s' % (utils.to_str(fngrprnt_func),
-                       utils.to_str(match_func))
+    name = '%s, %s' % (to_str(fngrprnt_func), to_str(match_func))
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -109,6 +109,23 @@ def run_queries(match_func, query_names, query_specs, lib_df, lib_specs,
                       out_dir=plot_dir)
 
     return hits
+
+
+def to_str(fnc):
+    '''Get string representation of a function or partial function.'''
+    if not fnc:
+        return 'None'
+
+    try:
+        return fnc.__name__
+    except Exception:
+        keywords = dict(fnc.keywords)
+
+        for key, value in keywords.items():
+            if inspect.isfunction(value):
+                keywords[key] = value.__name__
+
+        return '%s %s' % (fnc.func.__name__, keywords)
 
 
 def _plot_spectra(query_names, queries, hit_data, hit_specs, out_dir):

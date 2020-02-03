@@ -14,10 +14,10 @@ import sys
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import MinMaxScaler  # , StandardScaler
 
+from liv_ms import to_str
 from liv_ms.chem import encode_fngrprnt, get_fngrprnt_funcs
 from liv_ms.data import rt, mona, metlin, shikifactory
 from liv_ms.learn import k_fold  # , nn
-from liv_ms.utils import to_str
 import numpy as np
 
 
