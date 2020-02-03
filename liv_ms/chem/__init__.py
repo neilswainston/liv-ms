@@ -45,7 +45,6 @@ def get_fngrprnt_funcs():
                                       maxPath=max_path))
 
     return fngrprnt_funcs
-    # return [None]
 
 
 def encode_desc(smiles):
@@ -80,12 +79,3 @@ def get_similarities(smiles, fngrprnt_func):
             dists[(smiles[idx1], smiles[idx2])] = 1 - sim
 
     return dists
-
-
-def main(args):
-    '''main method.'''
-    print(get_similarities(args, Chem.RDKFingerprint))
-
-
-if __name__ == '__main__':
-    main(sys.argv[1:])

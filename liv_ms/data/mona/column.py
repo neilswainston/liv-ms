@@ -11,6 +11,7 @@ import sys
 
 import pandas as pd
 
+
 _DIM_PATTERN = \
     r'(\d+(?:\.\d+)?)(?: )?(?:mm)?(?: )?(?:x|by)(?: )?(\d+(?:\.\d+)?) ?mm'
 

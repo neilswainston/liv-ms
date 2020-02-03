@@ -17,12 +17,12 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 
 from liv_ms.chem import encode_fngrprnt, get_fngrprnt_funcs
-#from liv_ms.data import mona, metlin
 from liv_ms.learn import k_fold, rt
 from liv_ms.utils import to_str
 import numpy as np
 
 
+#from liv_ms.data import mona, metlin
 # from sklearn.preprocessing import StandardScaler
 def optimise(X, y, estimator, param_distributions,
              n_iter=16, cv=16, verbose=2, n_jobs=-1):

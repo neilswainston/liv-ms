@@ -42,7 +42,7 @@ _SOL_REGEXP = r'(?:(\d+(?:\.\d+)?)' + \
     r' ?(?:(\d+(?:\.\d+)?)\:?(\d+(?:\.\d+)?)?\:?(\d+(?:\.\d+)?)?)?'
 
 
-def get_rt_data(filename, num_spec=float('inf'), regen_stats=True):
+def get_rt_data(filename, num_spec=1e32, regen_stats=True):
     '''Get RT data.'''
     if regen_stats:
         # Get spectra:

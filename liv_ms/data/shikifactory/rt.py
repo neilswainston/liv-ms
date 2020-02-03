@@ -13,7 +13,7 @@ from liv_ms.data import rt
 import pandas as pd
 
 
-def get_rt_data(filename):
+def get_rt_data(filename, num_spec=1e32, regen_stats=False):
     '''Get RT data.'''
     # Get spectra:
     df = pd.read_excel(filename)
