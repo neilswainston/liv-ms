@@ -15,7 +15,7 @@ from functools import partial
 from scipy.spatial import KDTree
 from sklearn.metrics.pairwise import pairwise_distances
 
-from liv_ms.data import spectra
+from liv_ms import spectra
 import numpy as np
 
 

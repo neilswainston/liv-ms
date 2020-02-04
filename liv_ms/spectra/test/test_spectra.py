@@ -9,7 +9,7 @@ All rights reserved.
 # pylint: disable=wrong-import-order
 import unittest
 
-from liv_ms.data import spectra
+from liv_ms import spectra
 import numpy as np
 
 
@@ -45,18 +45,18 @@ class TestSpectra(unittest.TestCase):
     def test_normalise_simple(self):
         '''Test normalise method of spectra module.'''
         spec = np.array([[[1.0, 6.0], [3.0, 4.0]]])
-        max_mass = spectra.normalise(spec)
+        spec_normal, max_mass = spectra.normalise(spec)
 
         # Test max_mass:
         self.assertEqual(max_mass, 3.0)
 
         # Test m/z:
-        np.testing.assert_allclose(spec[0][:, 0],
+        np.testing.assert_allclose(spec_normal[0][:, 0],
                                    [0.3333, 1.0],
                                    rtol=1e-3)
 
         # Test I:
-        np.testing.assert_allclose(spec[0][:, 1],
+        np.testing.assert_allclose(spec_normal[0][:, 1],
                                    [0.6, 0.4],
                                    rtol=1e-3)
 
@@ -66,22 +66,22 @@ class TestSpectra(unittest.TestCase):
             [[1.0, 6.0], [3.0, 4.0]],
             [[5.0, 0.02], [10.0, 0.08]]])
 
-        max_mass = spectra.normalise(spec)
+        spec_normal, max_mass = spectra.normalise(spec)
 
         # Test max_mass:
         self.assertEqual(max_mass, 10.0)
 
         # Test m/z:
-        np.testing.assert_allclose(spec[0][:, 0],
+        np.testing.assert_allclose(spec_normal[0][:, 0],
                                    [0.1, 0.3],
                                    rtol=1e-3)
 
-        np.testing.assert_allclose(spec[1][:, 0],
+        np.testing.assert_allclose(spec_normal[1][:, 0],
                                    [0.5, 1.0],
                                    rtol=1e-3)
 
         # Test I:
-        np.testing.assert_allclose(spec[1][:, 1],
+        np.testing.assert_allclose(spec_normal[1][:, 1],
                                    [0.2, 0.8],
                                    rtol=1e-3)
 
@@ -91,22 +91,22 @@ class TestSpectra(unittest.TestCase):
             [[1.0, 6.0], [3.0, 4.0]],
             [[5.0, 0.02], [10.0, 0.08]]])
 
-        max_mass = spectra.normalise(spec, 100.0)
+        spec_normal, max_mass = spectra.normalise(spec, 100.0)
 
         # Test max_mass:
         self.assertEqual(max_mass, 100.0)
 
         # Test m/z:
-        np.testing.assert_allclose(spec[0][:, 0],
+        np.testing.assert_allclose(spec_normal[0][:, 0],
                                    [0.01, 0.03],
                                    rtol=1e-3)
 
-        np.testing.assert_allclose(spec[1][:, 0],
+        np.testing.assert_allclose(spec_normal[1][:, 0],
                                    [0.05, 0.1],
                                    rtol=1e-3)
 
         # Test I:
-        np.testing.assert_allclose(spec[1][:, 1],
+        np.testing.assert_allclose(spec_normal[1][:, 1],
                                    [0.2, 0.8],
                                    rtol=1e-3)
 
