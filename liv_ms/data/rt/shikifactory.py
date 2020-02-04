@@ -32,14 +32,3 @@ def get_rt_data(filename, num_spec=1e32, regen_stats=False):
     df['gradient values'] = [grad_vals for _ in df.index]
 
     return rt.get_stats(df)
-
-
-def main(args):
-    '''main method.'''
-    df = get_rt_data(args[0])
-
-    df.to_csv('rt_stats_shiki.csv')
-
-
-if __name__ == '__main__':
-    main(sys.argv[1:])
