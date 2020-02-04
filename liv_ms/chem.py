@@ -9,20 +9,18 @@ All rights reserved.
 # pylint: disable=no-name-in-module
 # pylint: disable=wrong-import-order
 from functools import partial
-import sys
 
 from rdkit import Chem, DataStructs
 from rdkit.Avalon.pyAvalonTools import GetAvalonFP
 from rdkit.Chem import Descriptors
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect, GetErGFingerprint
-from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint
-from rdkit.Chem.EState.Fingerprinter import FingerprintMol
+# from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint
+# from rdkit.Chem.EState.Fingerprinter import FingerprintMol
 from rdkit.Chem.rdMolDescriptors import \
     GetHashedAtomPairFingerprintAsBitVect, \
     GetHashedTopologicalTorsionFingerprintAsBitVect
 from sklearn.metrics.pairwise import cosine_similarity
 
-from liv_ms import similarity
 import numpy as np
 
 
