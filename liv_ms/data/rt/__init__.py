@@ -18,7 +18,7 @@ def get_data(filename, module, regen_stats, scaler_func=MinMaxScaler,
              max_rt=60.0, columns=None):
     '''Get data.'''
     # Get data:
-    stats_df = module.rt.get_rt_data(filename, regen_stats=regen_stats)
+    stats_df = module.get_rt_data(filename, regen_stats=regen_stats)
 
     if 'retention time mean' in stats_df.columns:
         stats_df = stats_df[stats_df['retention time mean'] < max_rt]
@@ -27,17 +27,20 @@ def get_data(filename, module, regen_stats, scaler_func=MinMaxScaler,
         [_encode_chrom(stats_df, columns=columns),
          _encode_desc(stats_df)], axis=1)
 
-    y = stats_df['retention time mean'].to_numpy()
-    y = y.reshape(len(y), 1)
+    if 'retention time mean' in stats_df.columns:
+        y = stats_df['retention time mean'].to_numpy()
+        y = y.reshape(len(y), 1)
 
-    if scaler_func:
-        y_scaler = scaler_func()
-        y_scaled = y_scaler.fit_transform(y)
+        if scaler_func:
+            y_scaler = scaler_func()
+            y_scaled = y_scaler.fit_transform(y)
+        else:
+            y_scaler = None
+            y_scaled = y
+
+        y_scaled = y_scaled.ravel()
     else:
-        y_scaler = None
-        y_scaled = y
-
-    y_scaled = y_scaled.ravel()
+        y_scaler, y_scaled = None, None
 
     return stats_df, X, y_scaled, y_scaler
 

@@ -7,8 +7,6 @@ All rights reserved.
 '''
 # pylint: disable=invalid-name
 # pylint: disable=wrong-import-order
-import sys
-
 from liv_ms.data import rt
 import pandas as pd
 
@@ -16,7 +14,7 @@ import pandas as pd
 def get_rt_data(filename, num_spec=1e32, regen_stats=False):
     '''Get RT data.'''
     # Get spectra:
-    df = pd.read_excel(filename)
+    df = pd.read_csv(filename)
 
     # Drop missing SMILES:
     df.rename(columns={'shikifactory compounds': 'name',
