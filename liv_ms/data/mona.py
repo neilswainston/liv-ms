@@ -5,6 +5,9 @@ All rights reserved.
 
 @author: neilswainston
 '''
+# pylint: disable=wrong-import-order
+import sys
+
 import ijson
 
 import numpy as np
@@ -56,6 +59,16 @@ def get_spectra(filename, num_spec=float('inf')):
     return pd.DataFrame(data)
 
 
+def _filter(spectra_df, fltr):
+    '''Filter.'''
+    fltr_df = spectra_df
+
+    for val in fltr:
+        fltr_df = fltr_df[fltr_df[val[0]] == val[1]]
+
+    return fltr_df
+
+
 def _parse_compound_metadata(name, value, chemical):
     '''Parses compound metadata.'''
     if name == 'chebi' and isinstance(value, str):
@@ -70,3 +83,21 @@ def _normalise_name(name):
         return _NAME_MAP[name]
 
     return name.replace(':', '_')
+
+
+def main(args):
+    '''main method.'''
+    filename = args[0]
+    num_spec = int(args[1])
+
+    # Get spectra:
+    spec_df = get_spectra(filename, num_spec=num_spec)
+
+    # Filter:
+    fltr_df = _filter(spec_df, [['collision energy', '50 eV']])
+
+    fltr_df.to_csv('spectra.csv')
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
