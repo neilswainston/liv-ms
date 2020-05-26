@@ -59,12 +59,13 @@ def get_spectra(filename, num_spec=float('inf')):
     return pd.DataFrame(data)
 
 
-def _filter(spectra_df, fltr):
+def _filter(spectra_df, fltr=None, cols=None):
     '''Filter.'''
-    fltr_df = spectra_df
+    fltr_df = spectra_df[cols] if cols else spectra_df
 
-    for val in fltr:
-        fltr_df = fltr_df[fltr_df[val[0]] == val[1]]
+    if fltr:
+        for val in fltr:
+            fltr_df = fltr_df[fltr_df[val[0]] == val[1]]
 
     return fltr_df
 
@@ -88,15 +89,16 @@ def _normalise_name(name):
 def main(args):
     '''main method.'''
     filename = args[0]
-    num_spec = int(args[1])
+    # num_spec = int(args[1])
 
     # Get spectra:
-    spec_df = get_spectra(filename, num_spec=num_spec)
+    spec_df = get_spectra(filename)
 
     # Filter:
-    fltr_df = _filter(spec_df, [['collision energy', '50 eV']])
+    # fltr_df = _filter(spec_df, [['collision energy', '50 eV']])
+    fltr_df = _filter(spec_df, cols=['smiles', 'm/z', 'I'])
 
-    fltr_df.to_csv('spectra.csv')
+    fltr_df.to_csv('spectra.csv', index=False)
 
 
 if __name__ == '__main__':
