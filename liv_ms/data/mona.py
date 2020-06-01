@@ -56,6 +56,9 @@ def get_spectra(filename, num_spec=float('inf')):
             if len(data) == num_spec:
                 break
 
+    # Prevent np array truncations:
+    np.set_printoptions(threshold=sys.maxsize)
+
     return pd.DataFrame(data)
 
 
