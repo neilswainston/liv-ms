@@ -45,6 +45,7 @@ class SimpleSpectraMatcher(SpectraMatcher):
         queries, _ = spectra.normalise(queries, self.__max_mz)
         queries = spectra.pad(queries)
 
+        # queries are masses (m/z), weights are intensities:
         fnc = partial(self.__get_sim_scores,
                       queries=self.__spectra[:, :, 0],
                       weights=self.__spectra[:, :, 1])
@@ -62,7 +63,7 @@ class SimpleSpectraMatcher(SpectraMatcher):
 
     def __get_sim_scores(self, target, queries, weights):
         '''Get closest distances between query and spec,
-        assuming sorted by m/s.'''
+        assuming sorted by m/z.'''
         # Only consider unpadded values:
         target = target[target > 0]
 
