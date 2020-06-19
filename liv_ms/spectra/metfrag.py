@@ -12,6 +12,7 @@ import sys
 
 from scipy.stats import norm
 
+from liv_ms.plot import plot_spectrum
 from liv_ms.spectra.similarity import SimpleSpectraMatcher
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,17 +31,24 @@ def compare(spec_df, min_mass=0.0, mass_acc=0.01, num_peaks=10,
 
     for _, row in spec_df.iterrows():
         meas_spec = list(zip(*row[['m/z', 'I']]))
-        query_spec = [[m, 1] for m in row['MetFrag m/z'] if m > min_mass]
+        query_spec = [[m, 100.0] for m in row['MetFrag m/z'] if m > min_mass]
 
         if meas_spec and query_spec:
             meas_spec = sorted(meas_spec, key=lambda x: -x[1])[:num_peaks]
             meas_spec = sorted(meas_spec)
 
-            print(meas_spec)
             matcher = SimpleSpectraMatcher(np.array([meas_spec]), mass_acc,
                                            scorer)
             score = matcher.search(np.array([query_spec]))[0][0]
             scores.append(score)
+
+            if score > 0.99:
+                plot_spectrum({'spectrum': meas_spec,
+                               'name': row['smiles']},
+                              [{'spectrum': query_spec,
+                                'name': row['smiles'],
+                                'score': score}],
+                              out_dir='out_bad')
 
         # print(row['smiles'], score)
 
@@ -67,6 +75,7 @@ def _plot_hist(values, label, out_filename='out.png'):
     plt.grid(True)
 
     plt.savefig(out_filename)
+    plt.close()
 
 
 def _to_array(array_str):
