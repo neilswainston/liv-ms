@@ -72,14 +72,18 @@ class SimpleSpectraMatcher(SpectraMatcher):
         sorted_idx = np.searchsorted(target, queries)
         sorted_idx[sorted_idx == len_target] = len_target - 1
 
-        mask = (sorted_idx > 0) & \
-            ((np.abs(queries - target[sorted_idx - 1])
-              < np.abs(queries - target[sorted_idx])))
+        if (sorted_idx > 0).any():
+            mask = (sorted_idx > 0) & \
+                ((np.abs(queries - target[sorted_idx - 1])
+                  < np.abs(queries - target[sorted_idx])))
 
-        dists = np.abs(queries - target[tuple([sorted_idx - mask])])
-        dists[dists > self.__mass_acc / self.__max_mz] = 1
+            dists = np.abs(queries - target[tuple([sorted_idx - mask])])
+            dists[dists > self.__mass_acc / self.__max_mz] = 1
 
-        return np.average(dists, weights=weights, axis=1)
+            return np.average(dists, weights=weights, axis=1)
+
+        # else:
+        return np.array([1.0])
 
 
 class BinnedSpectraMatcher(SpectraMatcher):
