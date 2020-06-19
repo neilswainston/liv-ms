@@ -18,7 +18,8 @@ import numpy as np
 import pandas as pd
 
 
-def compare(spec_df, mass_acc=0.01, scorer=np.min):
+def compare(spec_df, min_mass=0.0, mass_acc=0.01, num_peaks=10,
+            scorer=np.min):
     '''Compare measured spectra to MetFrag generated.'''
 
     spec_df['m/z'] = spec_df['m/z'].map(_to_array)
@@ -28,12 +29,18 @@ def compare(spec_df, mass_acc=0.01, scorer=np.min):
     scores = []
 
     for _, row in spec_df.iterrows():
-        target_spec = np.array([list(zip(*row[['m/z', 'I']]))])
-        query_spec = np.array([[[m, 1] for m in row['MetFrag m/z']]])
+        meas_spec = list(zip(*row[['m/z', 'I']]))
+        query_spec = [[m, 1] for m in row['MetFrag m/z'] if m > min_mass]
 
-        matcher = SimpleSpectraMatcher(target_spec, mass_acc, scorer)
-        score = matcher.search(query_spec)[0][0]
-        scores.append(score)
+        if meas_spec and query_spec:
+            meas_spec = sorted(meas_spec, key=lambda x: -x[1])[:num_peaks]
+            meas_spec = sorted(meas_spec)
+
+            print(meas_spec)
+            matcher = SimpleSpectraMatcher(np.array([meas_spec]), mass_acc,
+                                           scorer)
+            score = matcher.search(np.array([query_spec]))[0][0]
+            scores.append(score)
 
         # print(row['smiles'], score)
 
