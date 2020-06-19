@@ -12,6 +12,7 @@ All rights reserved.
 from abc import ABC, abstractmethod
 from functools import partial
 
+
 from scipy.spatial import KDTree
 from sklearn.metrics.pairwise import pairwise_distances
 
@@ -174,41 +175,3 @@ class KDTreeSpectraMatcher(SpectraMatcher):
         dists[dists == np.inf] = max_dist
 
         return np.average(dists / max_dist, weights=weights, axis=1)
-
-
-def main():
-    '''main method.'''
-    # Peaks have to be within this mass difference to be considered a match:
-    mass_acc = 0.01
-
-    # matcher matches query to target, and target to query, given two scores.
-    # The 'scorer' function is applied to these two scores (in this case we
-    # take the maximum (i.e. the worst of the two scores), but could be
-    # replaced with a mean or weighted average:
-    scorer = np.max
-
-    # Target spectra, to be matched against:
-    target_spec = np.array([
-        [
-            [89.87627, 5.0],
-            [126.6, 12.9],
-            [150.7, 100.0]
-        ],
-    ])
-
-    # Query spectrum (may be a different length to the target_spec):
-    query_spec = np.array([
-        [
-            [89.875, 12.6],
-            [99.83, 67.9],
-            [150.6987, 100.0]
-        ],
-    ])
-
-    matcher = SimpleSpectraMatcher(target_spec, mass_acc, scorer)
-    print(matcher.search(query_spec))
-
-
-if __name__ == "__main__":
-    # import sys;sys.argv = ['', 'Test.testName']
-    main()
