@@ -99,7 +99,7 @@ def main(args):
 
     # Filter:
     # fltr_df = _filter(spec_df, [['collision energy', '50 eV']])
-    fltr_df = _filter(spec_df, cols=['smiles', 'm/z', 'I'])
+    fltr_df = _filter(spec_df, cols=['name', 'smiles', 'm/z', 'I'])
 
     fltr_df.to_csv('spectra.csv', index=False)
 
