@@ -59,14 +59,13 @@ class SpectraSearcher():
         return np.dstack((top_idxs, score_data))
 
 
-def random_search(match_func, lib_df, num_queries=32, num_hits=64,
+def random_search(match_func, lib_df, query_df, num_queries=32, num_hits=64,
                   plot_dir=None):
     '''Random search.'''
     lib_specs = get_spectra(lib_df)
 
     # Get queries:
-    query_df = lib_df.sample(num_queries)
-    query_specs = get_spectra(query_df)
+    query_specs = get_spectra(query_df.sample(num_queries))
 
     # Run queries:
     return _run_queries(match_func, query_df['name'], query_specs,

@@ -7,52 +7,67 @@ All rights reserved.
 '''
 # pylint: disable=invalid-name
 # pylint: disable=wrong-import-order
+from functools import partial
 import re
 import sys
 
 from scipy.stats import norm
 
 from liv_ms.plot import plot_spectrum
+from liv_ms.spectra import searcher
 from liv_ms.spectra.similarity import SimpleSpectraMatcher
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 
-def compare(spec_df, min_mass=0.0, mass_acc=0.01, num_peaks=10,
-            scorer=np.min):
+def self_self(spec_df, match_func, min_mass=0.0, num_peaks=sys.maxsize):
     '''Compare measured spectra to MetFrag generated.'''
 
-    spec_df['m/z'] = spec_df['m/z'].map(_to_array)
-    spec_df['I'] = spec_df['I'].map(_to_array)
-    spec_df['MetFrag m/z'] = spec_df['MetFrag m/z'].map(_to_array)
+    _process_spec(spec_df)
 
     scores = []
 
     for _, row in spec_df.iterrows():
         meas_spec = list(zip(*row[['m/z', 'I']]))
-        query_spec = [[m, 100.0] for m in row['MetFrag m/z'] if m > min_mass]
+        metfrag_spec = [[m, 100.0] for m in row['MetFrag m/z'] if m > min_mass]
 
-        if meas_spec and query_spec:
+        if meas_spec and metfrag_spec:
             meas_spec = sorted(meas_spec, key=lambda x: -x[1])[:num_peaks]
             meas_spec = sorted(meas_spec)
 
-            matcher = SimpleSpectraMatcher(np.array([meas_spec]), mass_acc,
-                                           scorer)
-            score = matcher.search(np.array([query_spec]))[0][0]
+            # matcher = SimpleSpectraMatcher(np.array([meas_spec]), mass_acc,
+            #                               scorer)
+
+            matcher = match_func(np.array([meas_spec]))
+            score = matcher.search(np.array([metfrag_spec]))[0][0]
             scores.append(score)
 
-            if score > 0.99:
+            if score < 0.01:
                 plot_spectrum({'spectrum': meas_spec,
                                'name': row['smiles']},
-                              [{'spectrum': query_spec,
+                              [{'spectrum': metfrag_spec,
                                 'name': row['smiles'],
                                 'score': score}],
-                              out_dir='out_bad')
+                              out_dir='bin_good')
 
         # print(row['smiles'], score)
 
     _plot_hist(scores, 'Similarity scores')
+
+
+def search(spec_df, match_func, num_queries=32, num_hits=5):
+    '''Search randomly selected MetFrag spectra against all.'''
+    _process_spec(spec_df)\
+
+    lib_df = spec_df.drop(['m/z', 'I'], axis=1).rename(
+        columns={'MetFrag m/z': 'm/z', 'MetFrag I': 'I'})
+
+    query_df = spec_df
+
+    searcher.random_search(match_func, lib_df, query_df,
+                           num_queries=num_queries, num_hits=num_hits,
+                           plot_dir='out/search')
 
 
 def _plot_hist(values, label, out_filename='out.png'):
@@ -78,6 +93,14 @@ def _plot_hist(values, label, out_filename='out.png'):
     plt.close()
 
 
+def _process_spec(spec_df):
+    '''Process spectra data.'''
+    spec_df['m/z'] = spec_df['m/z'].map(_to_array)
+    spec_df['I'] = spec_df['I'].map(_to_array)
+    spec_df['MetFrag m/z'] = spec_df['MetFrag m/z'].map(_to_array)
+    spec_df['MetFrag I'] = spec_df['MetFrag m/z'].apply(_to_ones)
+
+
 def _to_array(array_str):
     '''Parse array string.'''
     regex = re.compile('[\\s|,]+')
@@ -85,10 +108,18 @@ def _to_array(array_str):
     return [float(val) for val in terms]
 
 
+def _to_ones(array):
+    '''Parse array string.'''
+    return [100.0 for _ in array]
+
+
 def main(args):
     '''main method.'''
     spec_df = pd.read_csv(args[0])
-    compare(spec_df)
+
+    match_func = partial(SimpleSpectraMatcher, mass_acc=0.005, scorer=np.min)
+    # self_self(spec_df)
+    search(spec_df, match_func)
 
 
 if __name__ == '__main__':
