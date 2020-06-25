@@ -92,10 +92,10 @@ def _normalise_name(name):
 def main(args):
     '''main method.'''
     filename = args[0]
-    # num_spec = int(args[1])
+    num_spec = int(args[1])
 
     # Get spectra:
-    spec_df = get_spectra(filename)
+    spec_df = get_spectra(filename, num_spec=num_spec)
 
     # Filter:
     # fltr_df = _filter(spec_df, [['collision energy', '50 eV']])
