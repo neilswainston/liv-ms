@@ -96,10 +96,16 @@ def main(args):
 
     # Get spectra:
     spec_df = get_spectra(filename, num_spec=num_spec)
+    spec_df['index'] = spec_df.index
 
     # Filter:
     # fltr_df = _filter(spec_df, [['collision energy', '50 eV']])
-    fltr_df = _filter(spec_df, cols=['name', 'smiles', 'm/z', 'I'])
+    fltr_df = _filter(spec_df, cols=['index',
+                                     'name',
+                                     'monoisotopic_mass_float',
+                                     'smiles',
+                                     'm/z',
+                                     'I'])
 
     fltr_df.to_csv('spectra.csv', index=False)
 
