@@ -99,7 +99,8 @@ def _run_queries(match_func, query_names, query_specs, lib_df, lib_specs,
     # Plot results:
     if plot_dir:
         hit_specs = lib_specs.take(
-            [[val['index'] for val in hit] for hit in hits])
+            [[lib_df.index.get_loc(val['index']) for val in hit]
+             for hit in hits])
         _plot_spectra(query_names, query_specs, hits, hit_specs,
                       out_dir=plot_dir)
 

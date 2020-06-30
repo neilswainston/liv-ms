@@ -51,23 +51,26 @@ def self_self(spec_df, match_func, min_mass=0.0, num_peaks=sys.maxsize):
                                 'score': score}],
                               out_dir='bin_good')
 
-        # print(row['smiles'], score)
-
     _plot_hist(scores, 'Similarity scores')
 
 
 def search(spec_df, match_func, num_queries=32, num_hits=5):
     '''Search randomly selected MetFrag spectra against all.'''
-    _process_spec(spec_df)\
+    _process_spec(spec_df)
+
+    spec_df.drop_duplicates('smiles', inplace=True)
 
     lib_df = spec_df.drop(['m/z', 'I'], axis=1).rename(
         columns={'MetFrag m/z': 'm/z', 'MetFrag I': 'I'})
 
     query_df = spec_df
 
-    searcher.random_search(match_func, lib_df, query_df,
-                           num_queries=num_queries, num_hits=num_hits,
-                           plot_dir='out/search')
+    hits = searcher.random_search(match_func, lib_df, query_df,
+                                  num_queries=num_queries, num_hits=num_hits,
+                                  plot_dir='out/metfrag/search/' +
+                                  match_func.func.__module__)
+
+    print(hits)
 
 
 def _plot_hist(values, label, out_filename='out.png'):
@@ -119,7 +122,7 @@ def main(args):
 
     match_func = partial(SimpleSpectraMatcher, mass_acc=0.005, scorer=np.min)
     # self_self(spec_df)
-    search(spec_df, match_func)
+    search(spec_df, match_func, num_queries=128)
 
 
 if __name__ == '__main__':
