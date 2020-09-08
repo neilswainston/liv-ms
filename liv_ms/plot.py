@@ -19,6 +19,48 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def plot_single_spectrum(query, out_dir='out'):
+    '''Plot single spectrum.'''
+    query_lines = [[(x, 0), (x, y)] for x, y in query['spectrum']]
+    query_col = ['green' for _ in query['spectrum']]
+
+    # Make plot
+    fig, axes = plt.subplots(1, 1, sharex=True)
+
+    if not isinstance(axes, Iterable):
+        axes = [axes]
+
+    ax = axes[0]
+    ax.axhline(y=0, color='k', linewidth=1)
+    ax.margins(x=0, y=0)
+
+    # Add 'peaks':
+    ax.add_collection(
+        collections.LineCollection(
+            query_lines,
+            colors=query_col,
+            alpha=0.5))
+
+    # Add (invisible) scatter points:
+    ax.scatter(*zip(*query['spectrum']), s=0)
+
+    # Format and save:
+    name = query['name']
+    ax.set_title(name, fontsize=6)
+    ax.set_xlabel('m/z', fontsize=6)
+    ax.set_ylabel('I', fontsize=6)
+    ax.tick_params(axis='both', which='major', labelsize=6)
+    ax.tick_params(axis='both', which='minor', labelsize=4)
+    ax.set_xlim([0, 50])
+
+    fig.tight_layout()
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    plt.savefig(os.path.join(out_dir, query['name'] + '.png'), dpi=800)
+
+
 def plot_spectrum(query, hits, out_dir='out'):
     '''Plot spectrum.'''
     query_lines = [[(x, 0), (x, y)] for x, y in query['spectrum']]
