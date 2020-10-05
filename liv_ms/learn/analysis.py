@@ -40,7 +40,7 @@ def _to_numpy_2d(array_str):
     return np.array([tuple(val) for val in values])
 
 
-def _match(row, tol=0.01):
+def _match(row, tol=0.1):
     '''Determine if masses match.'''
     match_idxs = np.ones(row['m/z'].size, dtype=int) * -1
     abs_diff = np.abs(np.subtract.outer(row['m/z'], row['METFRAG_MZ'])) < tol
