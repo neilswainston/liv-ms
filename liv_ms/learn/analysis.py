@@ -14,8 +14,22 @@ import sys
 
 from rdkit import Chem
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+
+def get_data(filename, tol):
+    '''Get data.'''
+    df = pd.read_csv(filename)
+    df['m/z'] = df['m/z'].apply(_to_numpy, sep=',')
+    df['METFRAG_MZ'] = df['METFRAG_MZ'].apply(_to_numpy, sep=',')
+    df['METFRAG_BROKEN_BONDS'] = df['METFRAG_BROKEN_BONDS'].apply(_to_numpy_2d)
+
+    df['match_idxs'] = df.apply(partial(_match, tol=tol), axis=1)
+    df['bonds_broken'] = df.apply(_get_broken_bonds, axis=1)
+
+    return df
 
 
 def get_bonds_freq(df):
@@ -56,17 +70,33 @@ def get_bond_freq(bonds_freq_df):
     return df.sort_values('freq', ascending=False)
 
 
-def get_data(filename, tol):
-    '''Get data.'''
-    df = pd.read_csv(filename)
-    df['m/z'] = df['m/z'].apply(_to_numpy, sep=',')
-    df['METFRAG_MZ'] = df['METFRAG_MZ'].apply(_to_numpy, sep=',')
-    df['METFRAG_BROKEN_BONDS'] = df['METFRAG_BROKEN_BONDS'].apply(_to_numpy_2d)
+def plot(bond_freq_df):
+    '''Plot.'''
+    categories, labels, data = _get_plot_data(bond_freq_df)
 
-    df['match_idxs'] = df.apply(partial(_match, tol=tol), axis=1)
-    df['bonds_broken'] = df.apply(_get_broken_bonds, axis=1)
+    x = np.arange(len(labels))  # the label locations
+    width = 0.35  # the width of the bars
 
-    return df
+    fig, ax = plt.subplots()
+    rects = []
+
+    for idx, vals in enumerate(data):
+        rects.append(ax.bar(x + width * idx, vals, width,
+                            label=categories[idx]))
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('Frequency')
+    ax.set_title('Frequencies of broken bonds of matching fragments')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
+
+    for rect in rects:
+        _autolabel(ax, rect)
+
+    fig.tight_layout()
+
+    plt.show()
 
 
 def _to_numpy(array_str, sep=','):
@@ -139,6 +169,55 @@ def _get_bond_freq(row, bond_freq):
             bond_freq[key] += row.freq / len(row.name)
 
 
+def _get_plot_data(df, min_freq=0.001):
+    '''Get plot data.'''
+    match_df = df[(df['match']) & (df['freq_matched'] > min_freq)]
+    match_df.loc[:, 'bond_label'] = match_df.apply(_get_bond_label, axis=1)
+
+    categories = match_df['aromatic'].unique()
+    labels = match_df['bond_label'].unique()
+    data = np.zeros((len(categories), len(labels)))
+
+    match_df.apply(partial(_add_plot_data,
+                           categories=categories,
+                           labels=labels,
+                           data=data), axis=1)
+
+    return ['Aromatic' if cat else 'Non-aromatic' for cat in categories], \
+        labels, data
+
+
+def _get_bond_label(row):
+    '''Get bond label.'''
+    bond_chrs = {1.0: '-',
+                 2.0: '=',
+                 3.0: '#',
+                 4.0: '$'}
+
+    try:
+        return row['atom1'] + bond_chrs[row['order']] + row['atom2']
+    except KeyError:
+        return 'PREC'
+
+
+def _add_plot_data(row, categories, labels, data):
+    '''Add plot data.'''
+    category = np.argwhere(categories == row['aromatic'])[0]
+    label = np.argwhere(labels == row['bond_label'])[0]
+    data[category, label] = row['freq_matched']
+
+
+def _autolabel(ax, rects):
+    '''Attach a text label above each bar in *rects*, displaying its height.'''
+    for rect in rects:
+        height = rect.get_height()
+        ax.annotate('%.3f' % height if height else '',
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 3),  # 3 points vertical offset
+                    textcoords='offset points',
+                    ha='center', va='bottom')
+
+
 def main(args):
     '''main method.'''
     df = get_data(args[0], float(args[1]))
@@ -147,6 +226,8 @@ def main(args):
 
     bond_freq_df = get_bond_freq(bonds_freq_df)
     bond_freq_df.to_csv('bond_freq.csv', index=False)
+
+    plot(bond_freq_df)
 
 
 if __name__ == '__main__':
