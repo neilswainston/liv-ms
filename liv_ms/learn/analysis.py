@@ -16,6 +16,21 @@ import numpy as np
 import pandas as pd
 
 
+def get_bonds_frequency(df):
+    '''Get bonds frequency.'''
+    bonds_frequency = pd.Series(
+        [item for sublist in df['bonds_broken']
+         for item in sublist]).value_counts(normalize=True, dropna=False)
+
+    bonds_frequency_df = bonds_frequency.reset_index()
+    bonds_frequency_df['index'] = bonds_frequency_df['index'].apply(_decode)
+    bonds_frequency_df.set_index('index', inplace=True)
+    bonds_frequency_df.index.name = 'bonds'
+    bonds_frequency_df.columns = ['frequency']
+
+    return bonds_frequency_df
+
+
 def get_data(filename):
     '''Get data.'''
     df = pd.read_csv(filename)
@@ -40,7 +55,7 @@ def _to_numpy_2d(array_str):
     return np.array([tuple(val) for val in values])
 
 
-def _match(row, tol=0.1):
+def _match(row, tol=0.01):
     '''Determine if masses match.'''
     match_idxs = np.ones(row['m/z'].size, dtype=int) * -1
     abs_diff = np.abs(np.subtract.outer(row['m/z'], row['METFRAG_MZ'])) < tol
@@ -86,17 +101,8 @@ def _decode_val(encoded):
 def main(args):
     '''main method.'''
     df = get_data(args[0])
-
-    value_counts = pd.Series(
-        [item for sublist in df['bonds_broken']
-         for item in sublist]).value_counts(normalize=True, dropna=False)
-
-    value_counts_df = value_counts.reset_index()
-    value_counts_df['index'] = value_counts_df['index'].apply(_decode)
-    value_counts_df.set_index('index', inplace=True)
-    value_counts_df.index.name = 'bonds'
-    value_counts_df.columns = ['frequency']
-    value_counts_df.to_csv('bonds_frequency.csv')
+    bonds_frequency_df = get_bonds_frequency(df)
+    bonds_frequency_df.to_csv('bonds_frequency.csv')
 
 
 if __name__ == '__main__':
