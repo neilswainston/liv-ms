@@ -71,9 +71,9 @@ def get_bond_freq(bonds_freq_df):
     return df.sort_values('freq', ascending=False)
 
 
-def plot(bond_freq_df, out_filename):
+def plot(bond_freq_df, freq_col, match, out_filename):
     '''Plot.'''
-    categories, labels, data = _get_plot_data(bond_freq_df)
+    categories, labels, data = _get_plot_data(bond_freq_df, freq_col, match)
 
     x = np.arange(len(labels))  # the label locations
     width = 0.35  # the width of the bars
@@ -174,19 +174,24 @@ def _get_bond_freq(row, bond_freq):
             bond_freq[key] += row.freq / len(row.name)
 
 
-def _get_plot_data(df, min_freq=0.001):
+def _get_plot_data(df, freq_col, match, min_freq=0.001):
     '''Get plot data.'''
-    match_df = df[(df['match']) & (df['freq_matched'] > min_freq)]
-    match_df.loc[:, 'bond_label'] = match_df.apply(_get_bond_label, axis=1)
+    data_df = df[df[freq_col] > min_freq]
 
-    categories = match_df['aromatic'].unique()
-    labels = match_df['bond_label'].unique()
+    if match:
+        data_df = data_df[data_df['match']]
+
+    data_df.loc[:, 'bond_label'] = data_df.apply(_get_bond_label, axis=1)
+
+    categories = data_df['aromatic'].unique()
+    labels = data_df['bond_label'].unique()
     data = np.zeros((len(categories), len(labels)))
 
-    match_df.apply(partial(_add_plot_data,
-                           categories=categories,
-                           labels=labels,
-                           data=data), axis=1)
+    data_df.apply(partial(_add_plot_data,
+                          freq_col=freq_col,
+                          categories=categories,
+                          labels=labels,
+                          data=data), axis=1)
 
     return ['Aromatic' if cat else 'Non-aromatic' for cat in categories], \
         labels, data
@@ -199,17 +204,20 @@ def _get_bond_label(row):
                  3.0: '#',
                  4.0: '$'}
 
+    if not row['match']:
+        return 'UNMATCH'
+
     try:
         return row['atom1'] + bond_chrs[row['order']] + row['atom2']
     except KeyError:
         return 'PREC'
 
 
-def _add_plot_data(row, categories, labels, data):
+def _add_plot_data(row, freq_col, categories, labels, data):
     '''Add plot data.'''
     category = np.argwhere(categories == row['aromatic'])[0]
     label = np.argwhere(labels == row['bond_label'])[0]
-    data[category, label] = row['freq_matched']
+    data[category, label] = row[freq_col]
 
 
 def _autolabel(ax, rects):
@@ -247,7 +255,7 @@ def main(args):
     bond_freq_df = get_bond_freq(bonds_freq_df)
     bond_freq_df.to_csv('bond_freq.csv', index=False)
 
-    plot(bond_freq_df, in_filename + '.png')
+    plot(bond_freq_df, args[2], args[3] == 'True', in_filename + '.png')
 
 
 if __name__ == '__main__':
