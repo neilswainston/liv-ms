@@ -7,6 +7,7 @@ All rights reserved.
 '''
 # pylint: disable=invalid-name
 # pylint: disable=no-member
+from ast import literal_eval as make_tuple
 import collections
 from functools import partial
 import json
@@ -70,7 +71,7 @@ def get_bond_freq(bonds_freq_df):
     return df.sort_values('freq', ascending=False)
 
 
-def plot(bond_freq_df):
+def plot(bond_freq_df, out_filename):
     '''Plot.'''
     categories, labels, data = _get_plot_data(bond_freq_df)
 
@@ -96,7 +97,7 @@ def plot(bond_freq_df):
 
     fig.tight_layout()
 
-    plt.show()
+    plt.savefig(out_filename)
 
 
 def _to_numpy(array_str, sep=','):
@@ -113,10 +114,14 @@ def _to_numpy_2d(array_str):
 def _match(row, tol):
     '''Determine if masses match.'''
     match_idxs = np.ones(row['m/z'].size, dtype=int) * -1
-    abs_diff = np.abs(np.subtract.outer(row['m/z'], row['METFRAG_MZ'])) < tol
-    abs_diff_match_idxs = np.where(np.any(abs_diff, axis=1))
-    abs_diff_idxs = np.argmax(abs_diff, axis=1)[abs_diff_match_idxs]
-    np.put(match_idxs, abs_diff_match_idxs, abs_diff_idxs, mode='raise')
+
+    if row['METFRAG_MZ'].size:
+        abs_diff = np.abs(np.subtract.outer(
+            row['m/z'], row['METFRAG_MZ'])) < tol
+        abs_diff_match_idxs = np.where(np.any(abs_diff, axis=1))
+        abs_diff_idxs = np.argmax(abs_diff, axis=1)[abs_diff_match_idxs]
+        np.put(match_idxs, abs_diff_match_idxs, abs_diff_idxs, mode='raise')
+
     return match_idxs
 
 
@@ -218,16 +223,31 @@ def _autolabel(ax, rects):
                     ha='center', va='bottom')
 
 
+def _make_tuple(val):
+    '''Make tuple.'''
+    if isinstance(val, float) and np.isnan(val):
+        return val
+
+    return make_tuple(val)
+
+
 def main(args):
     '''main method.'''
-    df = get_data(args[0], float(args[1]))
-    bonds_freq_df = get_bonds_freq(df)
-    bonds_freq_df.to_csv('bonds_freq.csv')
+    in_filename = args[0]
+
+    if in_filename.startswith('bonds_freq'):
+        bonds_freq_df = pd.read_csv(in_filename)
+        bonds_freq_df['bonds'] = bonds_freq_df['bonds'].apply(_make_tuple)
+        bonds_freq_df.set_index('bonds', inplace=True)
+    else:
+        df = get_data(in_filename, float(args[1]))
+        bonds_freq_df = get_bonds_freq(df)
+        bonds_freq_df.to_csv('bonds_freq.csv')
 
     bond_freq_df = get_bond_freq(bonds_freq_df)
     bond_freq_df.to_csv('bond_freq.csv', index=False)
 
-    plot(bond_freq_df)
+    plot(bond_freq_df, in_filename + '.png')
 
 
 if __name__ == '__main__':
