@@ -176,7 +176,7 @@ def _get_bond_freq(row, bond_freq):
 
 def _get_plot_data(df, freq_col, match, min_freq=0.001):
     '''Get plot data.'''
-    data_df = df[df[freq_col] > min_freq]
+    data_df = df[df[freq_col] > min_freq].copy()
 
     if match:
         data_df = data_df[data_df['match']]
