@@ -147,7 +147,9 @@ def main(args):
     spec_df = filter_spec(spec_df, cols=['index',
                                          'name',
                                          'monoisotopic_mass_float',
+                                         'formula',
                                          'smiles',
+                                         'inchi',
                                          'm/z',
                                          'I'])
 
@@ -159,7 +161,7 @@ def main(args):
 
     filter_inten(spec_df)
 
-    spec_df.to_csv('spectra.csv', index=False)
+    spec_df.to_csv(args[2], index=False)
 
 
 if __name__ == '__main__':

@@ -5,9 +5,33 @@ All rights reserved.
 
 @author': 'neilswainston
 '''
+# pylint: disable=invalid-name
 from datetime import date
 import sys
 import uuid
+
+import numpy as np
+import pandas as pd
+
+
+def convert(df, out_filename):
+    '''Convert DataFrame to massbank.'''
+    data = []
+
+    df['METFRAG_MZ'] = df['METFRAG_MZ'].apply(_to_numpy)
+
+    for _, row in df.iterrows():
+        entry = {
+            # name,monoisotopic_mass_float,smiles,m/z,I,METFRAG_MZ
+            'metadata': _get_metadata(row['name'],
+                                      row['formula'],
+                                      row['monoisotopic_mass_float'],
+                                      row['smiles'],
+                                      row['inchi']),
+            'peaks': row['METFRAG_MZ']
+        }
+        data.append(entry)
+    to_massbank(data, out_filename)
 
 
 def to_massbank(data, out_filename):
@@ -18,6 +42,11 @@ def to_massbank(data, out_filename):
             _write_metadata(entry['metadata'], fle)
             _write_peaks(entry['peaks'], fle)
             fle.write('//\n')
+
+
+def _to_numpy(array_str, sep=','):
+    '''Convert array_str to numpy.'''
+    return np.fromstring(array_str[1:-1], sep=sep)
 
 
 def _write_metadata(metadata, fle):
@@ -62,14 +91,7 @@ def _get_metadata(name, formula, mass, smiles, inchi):
 
 def main(args):
     '''main method.'''
-    data = [
-        {
-            'metadata': _get_metadata('water', 'H2O', 18.01056, 'O',
-                                      'InChI=1S/H2O/h1H2'),
-            'peaks': [12.6, 27128.2]
-        }
-    ]
-    to_massbank(data, args[1])
+    convert(pd.read_csv(args[0]), args[1])
 
 
 if __name__ == '__main__':
