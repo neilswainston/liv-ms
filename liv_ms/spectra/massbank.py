@@ -6,6 +6,7 @@ All rights reserved.
 @author': 'neilswainston
 '''
 # pylint: disable=invalid-name
+# pylint: disable=len-as-condition
 from datetime import date
 import sys
 import uuid
@@ -31,6 +32,7 @@ def convert(df, out_filename):
             'peaks': row['METFRAG_MZ']
         }
         data.append(entry)
+
     to_massbank(data, out_filename)
 
 
@@ -38,10 +40,11 @@ def to_massbank(data, out_filename):
     '''Convert to massbank file.'''
     with open(out_filename, 'w') as fle:
         for idx, entry in enumerate(data):
-            entry['metadata']['ACCESSION'] = idx
-            _write_metadata(entry['metadata'], fle)
-            _write_peaks(entry['peaks'], fle)
-            fle.write('//\n')
+            if len(entry['peaks']):
+                entry['metadata']['ACCESSION'] = idx
+                _write_metadata(entry['metadata'], fle)
+                _write_peaks(entry['peaks'], fle)
+                fle.write('//\n')
 
 
 def _to_numpy(array_str, sep=','):
@@ -65,8 +68,10 @@ def _write_peaks(peaks, fle):
     fle.write('PK$NUM_PEAK: %i\n' % len(peaks))
     fle.write('PK$PEAK: m/z int. rel.int.\n')
 
+    rel_int = 1 / len(peaks) * 1000
+
     for peak in peaks:
-        fle.write('  %f 1 1\n' % peak)
+        fle.write('  %f 1 %f\n' % (peak, rel_int))
 
 
 def _get_metadata(name, formula, mass, smiles, inchi):
@@ -79,13 +84,13 @@ def _get_metadata(name, formula, mass, smiles, inchi):
         'CH$NAME': name,
         'CH$COMPOUND_CLASS': 'N/A; Metabolomics Standard',
         'CH$FORMULA': formula,
-        'CH$EXACT_MASS': mass,
+        'CH$EXACT_MASS': float(mass),
         'CH$SMILES': smiles,
         'CH$IUPAC': inchi,
         'AC$INSTRUMENT': 'MetFrag',
         'AC$INSTRUMENT_TYPE': 'MetFrag',
         'AC$MASS_SPECTROMETRY': ['MS_TYPE MS2', 'ION_MODE POSITIVE'],
-        'MS$FOCUSED_ION': 'BASE_PEAK %f' % mass
+        'MS$FOCUSED_ION': 'BASE_PEAK %f' % float(mass)
     }
 
 
