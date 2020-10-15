@@ -61,7 +61,7 @@ def _write_metadata(metadata, fle):
 
 def _write_peaks(peaks, fle):
     '''Write peaks.'''
-    fle.write('PK$SPLASH: %s' % str(uuid.uuid4()))
+    fle.write('PK$SPLASH: %s\n' % str(uuid.uuid4()))
     fle.write('PK$NUM_PEAK: %i\n' % len(peaks))
     fle.write('PK$PEAK: m/z int. rel.int.\n')
 
