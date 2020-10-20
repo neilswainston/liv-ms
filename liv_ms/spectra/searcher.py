@@ -37,8 +37,8 @@ class SpectraSearcher():
         hits = np.dstack((match_data, idx_score[:, :, 1]))
 
         fnc = partial(_to_dict, keys=[
-                      'index', 'name', 'monoisotopic_mass_float', 'smiles',
-                      'score'])
+            'index', 'name', 'monoisotopic_mass_float', 'smiles',
+            'score'])
 
         return np.apply_along_axis(fnc, 2, hits)
 

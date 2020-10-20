@@ -21,7 +21,7 @@ import pandas as pd
 def analyse(df, fngrprnt_func, match_func, out_dir):
     '''Analyse correlation between spectra match score and chemical
     similarity.'''
-    hits = searcher.random_search(match_func, df)
+    hits = searcher.random_search(match_func, df, df)
     # searcher.specific_search(matcher, df, 125, 19)
 
     hit_results = []
@@ -70,10 +70,13 @@ def _get_match_funcs():
 
 def main(args):
     '''main method.'''
-    out_dir = args[1]
 
     # Get spectra:
-    df = data.mona.get_spectra(args[0], num_spec=1024)
+    df = pd.read_csv(args[0], nrows=512)
+    df['m/z'] = df['m/z'].apply(data.to_numpy)
+    df['I'] = df['I'].apply(data.to_numpy)
+
+    out_dir = args[1]
 
     for fngrprnt_func, match_func in product(chem.get_fngrprnt_funcs(),
                                              _get_match_funcs()):

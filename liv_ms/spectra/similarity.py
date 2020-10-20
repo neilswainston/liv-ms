@@ -51,14 +51,14 @@ class SimpleSpectraMatcher(SpectraMatcher):
                       queries=self.__spectra[:, :, 0],
                       weights=self.__spectra[:, :, 1])
 
-        lib_query_scores = np.apply_along_axis(fnc, 1, queries[:, :, 0])
+        lib_query_scores = np.array([fnc(query) for query in queries[:, :, 0]])
 
         fnc = partial(self.__get_sim_scores,
                       queries=queries[:, :, 0],
                       weights=queries[:, :, 1])
 
-        query_lib_scores = np.apply_along_axis(
-            fnc, 1, self.__spectra[:, :, 0]).T
+        query_lib_scores = np.array(
+            [fnc(spec) for spec in self.__spectra[:, :, 0]]).T
 
         return self.__scorer([query_lib_scores, lib_query_scores], axis=0)
 
@@ -83,7 +83,7 @@ class SimpleSpectraMatcher(SpectraMatcher):
             return np.average(dists, weights=weights, axis=1)
 
         # else:
-        return np.array([1.0])
+        return np.array([1.0] * len(queries))
 
 
 class BinnedSpectraMatcher(SpectraMatcher):
