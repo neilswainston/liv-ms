@@ -6,6 +6,7 @@ All rights reserved.
 @author: neilswainston
 '''
 # pylint: disable=invalid-name
+# pylint: disable=too-many-arguments
 # pylint: disable=wrong-import-order
 from functools import partial
 from itertools import product
@@ -21,8 +22,9 @@ import pandas as pd
 def analyse(df, fngrprnt_func, match_func, out_dir, num_queries=8):
     '''Analyse correlation between spectra match score and chemical
     similarity.'''
-    hits = searcher.random_search(match_func, df, num_queries)
-    # searcher.specific_search(matcher, df, 125, 19)
+    hits = searcher.random_mass_search(match_func, df, num_queries)
+    # hits = searcher.random_search(match_func, df, num_queries)
+    # hits = searcher.specific_search(matcher, df, [125], [19])
 
     _process_hits(hits, fngrprnt_func, match_func, out_dir)
 

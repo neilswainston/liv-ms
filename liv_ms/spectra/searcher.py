@@ -59,13 +59,32 @@ class SpectraSearcher():
 
 def random_search(match_func, df, num_queries=32, num_hits=64):
     '''Random search.'''
-    lib_idx = df.index
-
     # Get queries:
     query_idx = df.sample(num_queries).index
 
     # Run queries:
-    return specific_search(match_func, df, query_idx, lib_idx, num_hits)
+    return specific_search(match_func, df, query_idx, df.index, num_hits)
+
+
+def random_mass_search(match_func, df, num_queries=32, num_hits=64):
+    '''Random mass_search.'''
+    part = partial(_mass_search, match_func=match_func, df=df,
+                   num_hits=num_hits)
+
+    all_hits = df.sample(num_queries).apply(part, axis=1)
+
+    return all_hits.values
+
+
+def _mass_search(row, match_func, df, num_hits, mass_acc=0.1):
+    '''Mass search.'''
+    query_mass = row['monoisotopic_mass_float']
+
+    lib_df = df[(df['monoisotopic_mass_float'] > query_mass - mass_acc)
+                & (df['monoisotopic_mass_float'] < query_mass + mass_acc)]
+
+    return specific_search(
+        match_func, df, [row.name], lib_df.index, num_hits)[0]
 
 
 def specific_search(match_func, df, query_idx, lib_idx, num_hits=64):
@@ -92,6 +111,7 @@ def _run_queries(match_func, query_specs, lib_df, lib_specs, num_hits):
 
 def _get_top_idxs(arr, n):
     '''Get sorted list of top indices.'''
+    n = min([n, len(arr)])
     idxs = np.argpartition(arr, n - 1)[:n]
 
     # Extra code if you need the indices in order:
