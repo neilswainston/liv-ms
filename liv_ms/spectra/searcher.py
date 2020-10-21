@@ -57,36 +57,6 @@ class SpectraSearcher():
         return np.dstack((top_idxs, score_data))
 
 
-def random_search(match_func, df, num_queries=32, num_hits=64):
-    '''Random search.'''
-    # Get queries:
-    query_idx = df.sample(num_queries).index
-
-    # Run queries:
-    return specific_search(match_func, df, query_idx, df.index, num_hits)
-
-
-def random_mass_search(match_func, df, num_queries=32, num_hits=64):
-    '''Random mass_search.'''
-    part = partial(_mass_search, match_func=match_func, df=df,
-                   num_hits=num_hits)
-
-    all_hits = df.sample(num_queries).apply(part, axis=1)
-
-    return all_hits.values
-
-
-def _mass_search(row, match_func, df, num_hits, mass_acc=0.1):
-    '''Mass search.'''
-    query_mass = row['monoisotopic_mass_float']
-
-    lib_df = df[(df['monoisotopic_mass_float'] > query_mass - mass_acc)
-                & (df['monoisotopic_mass_float'] < query_mass + mass_acc)]
-
-    return specific_search(
-        match_func, df, [row.name], lib_df.index, num_hits)[0]
-
-
 def specific_search(match_func, df, query_idx, lib_idx, num_hits=64):
     '''Specific search.'''
     lib_df = df.loc[lib_idx]
@@ -100,6 +70,25 @@ def specific_search(match_func, df, query_idx, lib_idx, num_hits=64):
     return _run_queries(match_func, query_specs, lib_df, lib_specs, num_hits)
 
 
+def random_search(match_func, df, num_queries=32, num_hits=64):
+    '''Random search.'''
+    # Get queries:
+    query_idx = df.sample(num_queries).index
+
+    # Run queries:
+    return specific_search(match_func, df, query_idx, df.index, num_hits)
+
+
+def random_mass_search(match_func, df, num_queries=32, num_hits=64):
+    '''Random mass_search.'''
+    query_df = df.sample(num_queries)
+
+    part = partial(_mass_search, match_func=match_func, df=df,
+                   num_hits=num_hits)
+
+    return query_df.apply(part, axis=1).values
+
+
 def _run_queries(match_func, query_specs, lib_df, lib_specs, num_hits):
     '''Run queries.'''
     # Initialise SpectraMatcher:
@@ -107,6 +96,17 @@ def _run_queries(match_func, query_specs, lib_df, lib_specs, num_hits):
 
     # Run queries:
     return src.search(query_specs, num_hits)
+
+
+def _mass_search(row, match_func, df, num_hits, mass_acc=0.1):
+    '''Mass search.'''
+    query_mass = row['monoisotopic_mass_float']
+
+    lib_df = df[(df['monoisotopic_mass_float'] > query_mass - mass_acc)
+                & (df['monoisotopic_mass_float'] < query_mass + mass_acc)]
+
+    return specific_search(
+        match_func, df, [row.name], lib_df.index, num_hits)[0]
 
 
 def _get_top_idxs(arr, n):
