@@ -7,10 +7,8 @@ All rights reserved.
 '''
 # pylint: disable=invalid-name
 # pylint: disable=too-few-public-methods
-# pylint: disable=too-many-arguments
 # pylint: disable=wrong-import-order
 from functools import partial
-from liv_ms import plot
 from liv_ms.spectra import get_spectra
 import numpy as np
 
@@ -59,64 +57,37 @@ class SpectraSearcher():
         return np.dstack((top_idxs, score_data))
 
 
-def random_search(match_func, lib_df, query_df, num_queries=32, num_hits=64,
-                  plot_dir=None):
+def random_search(match_func, df, num_queries=32, num_hits=64):
     '''Random search.'''
+    lib_idx = df.index
+
+    # Get queries:
+    query_idx = df.sample(num_queries).index
+
+    # Run queries:
+    return specific_search(match_func, df, query_idx, lib_idx, num_hits)
+
+
+def specific_search(match_func, df, query_idx, lib_idx, num_hits=64):
+    '''Specific search.'''
+    lib_df = df.loc[lib_idx]
     lib_specs = get_spectra(lib_df)
 
     # Get queries:
-    query_specs = get_spectra(query_df.sample(num_queries))
-
-    # Run queries:
-    return _run_queries(match_func, query_df['name'], query_specs,
-                        lib_df, lib_specs,
-                        num_hits=num_hits, plot_dir=plot_dir)
-
-
-def specific_search(match_func, lib_df, query_idx, lib_idx, plot_dir=None):
-    '''Specific search.'''
-    lib_specs = get_spectra(lib_df.loc[[lib_idx]])
-
-    # Get queries:
-    query_df = lib_df.loc[[query_idx]]
+    query_df = df.loc[query_idx]
     query_specs = get_spectra(query_df)
 
     # Run queries:
-    return _run_queries(match_func, query_df['name'], query_specs,
-                        lib_df, lib_specs,
-                        num_hits=1, plot_dir=plot_dir)
+    return _run_queries(match_func, query_specs, lib_df, lib_specs, num_hits)
 
 
-def _run_queries(match_func, query_names, query_specs, lib_df, lib_specs,
-                 num_hits, plot_dir=None):
+def _run_queries(match_func, query_specs, lib_df, lib_specs, num_hits):
     '''Run queries.'''
     # Initialise SpectraMatcher:
     src = SpectraSearcher(match_func(lib_specs), lib_df)
 
     # Run queries:
-    hits = src.search(query_specs, num_hits)
-
-    # Plot results:
-    if plot_dir:
-        hit_specs = lib_specs.take(
-            [[lib_df.index.get_loc(val['index']) for val in hit]
-             for hit in hits])
-        _plot_spectra(query_names, query_specs, hits, hit_specs,
-                      out_dir=plot_dir)
-
-    return hits
-
-
-def _plot_spectra(query_names, queries, hit_data, hit_specs, out_dir):
-    '''Plot spectra.'''
-    for query_name, query_spec, hit, hit_spec in zip(query_names, queries,
-                                                     hit_data, hit_specs):
-        query = {'name': query_name, 'spectrum': query_spec}
-
-        for h, s in zip(hit, hit_spec):
-            h.update({'spectrum': s})
-
-        plot.plot_spectrum(query, hit, out_dir)
+    return src.search(query_specs, num_hits)
 
 
 def _get_top_idxs(arr, n):

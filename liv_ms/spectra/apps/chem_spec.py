@@ -18,12 +18,17 @@ import numpy as np
 import pandas as pd
 
 
-def analyse(df, fngrprnt_func, match_func, out_dir):
+def analyse(df, fngrprnt_func, match_func, out_dir, num_queries=8):
     '''Analyse correlation between spectra match score and chemical
     similarity.'''
-    hits = searcher.random_search(match_func, df, df)
+    hits = searcher.random_search(match_func, df, num_queries)
     # searcher.specific_search(matcher, df, 125, 19)
 
+    _process_hits(hits, fngrprnt_func, match_func, out_dir)
+
+
+def _process_hits(hits, fngrprnt_func, match_func, out_dir):
+    '''Process hits.'''
     hit_results = []
 
     for hit in hits:
@@ -66,6 +71,23 @@ def _get_match_funcs():
                                        scorer=scorer))
 
     return match_funcs
+
+
+def _plot_spectra(query_names, queries, hits, hit_data, lib_specs, lib_df,
+                  out_dir):
+    '''Plot spectra.'''
+    hit_specs = lib_specs.take(
+        [[lib_df.index.get_loc(val['index']) for val in hit]
+         for hit in hits])
+
+    for query_name, query_spec, hit, hit_spec in zip(query_names, queries,
+                                                     hit_data, hit_specs):
+        query = {'name': query_name, 'spectrum': query_spec}
+
+        for h, s in zip(hit, hit_spec):
+            h.update({'spectrum': s})
+
+        plot.plot_spectrum(query, hit, out_dir)
 
 
 def main(args):
