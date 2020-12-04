@@ -69,9 +69,8 @@ def _search_query(row, max_page_num=512, max_attempts=128):
 
         for page_num in range(1, max_page_num):
             try:
-                page = requests.get(search_url %
-                                    (_DOMAIN, row['Name'], page_num),
-                                    timeout=5)
+                url = search_url % (_DOMAIN, row['Name'], page_num)
+                page = requests.get(url, timeout=5)
             except requests.exceptions.ReadTimeout as err:
                 continue
 
