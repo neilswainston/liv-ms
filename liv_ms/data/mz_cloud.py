@@ -27,15 +27,15 @@ def search(filename):
 
 def _search_txt(filename):
     '''Search function.'''
-    df = pd.read_csv(filename, header=None)
+    df = pd.read_csv(filename, header=None, sep='\n')
     df.columns = ['Name']
 
     # Search query_name:
     df = df.apply(_search_query, axis=1)
 
     # Write csv file:
-    df[['Name', 'id', 'mzcloud_name', 'link', 'synonyms']].to_csv(
-        filename + '.csv')
+    df[['Name', 'id', 'exact_match', 'mzcloud_name', 'link', 'synonyms']
+       ].to_csv(filename + '.csv')
 
 
 def _search_xl(filename):
@@ -109,15 +109,14 @@ def _search_page(row, page):
             synonyms = sorted(list(set(_get_span_text(span)
                                        for span in p.find_all('span'))))
 
-            if row['Name'].lower() == name.lower() or \
-                    (row['Name'].lower() in map(lambda x: x.lower(),
-                                                synonyms)):
-                row['mzcloud_name'] = name
-                row['id'] = href.split('/')[-1]
-                row['link'] = _DOMAIN + href
-                row['synonyms'] = synonyms
-                print(row)
-                break
+            row['exact_match'] = row['Name'].lower() == name.lower() or \
+                (row['Name'].lower() in map(lambda x: x.lower(), synonyms))
+            row['mzcloud_name'] = name
+            row['id'] = href.split('/')[-1]
+            row['link'] = _DOMAIN + href
+            row['synonyms'] = synonyms
+            print(row)
+            break
 
     return True, row
 
